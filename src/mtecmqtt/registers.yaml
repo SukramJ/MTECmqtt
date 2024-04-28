@@ -60,7 +60,7 @@
   mqtt: consumption_total
   group: total
   hass_device_class: energy
-  hass_value_template: "{{ value | round(0) }}"
+  hass_value_template: "{{ value | round(1) }}"
   hass_state_class: total_increasing
 
 "autarky-total":
@@ -793,7 +793,7 @@
   mqtt: grid_feed_total
   group: total
   hass_device_class: energy
-  hass_value_template: "{{ value | round(0) }}"
+  hass_value_template: "{{ value | round(1) }}"
   hass_state_class: total_increasing 
 
 "31104":
@@ -805,7 +805,7 @@
   mqtt: grid_purchase_total
   group: total
   hass_device_class: energy
-  hass_value_template: "{{ value | round(0) }}"
+  hass_value_template: "{{ value | round(1) }}"
   hass_state_class: total_increasing 
 
 "31106":
@@ -817,7 +817,7 @@
   mqtt: backup_total
   group: total
   hass_device_class: energy
-  hass_value_template: "{{ value | round(0) }}"
+  hass_value_template: "{{ value | round(1) }}"
   hass_state_class: total_increasing 
 
 "31108":
@@ -829,7 +829,7 @@
   mqtt: battery_charge_total
   group: total
   hass_device_class: energy
-  hass_value_template: "{{ value | round(0) }}"
+  hass_value_template: "{{ value | round(1) }}"
   hass_state_class: total_increasing 
 
 "31110":
@@ -841,7 +841,7 @@
   mqtt: battery_discharge_total
   group: total
   hass_device_class: energy
-  hass_value_template: "{{ value | round(0) }}"
+  hass_value_template: "{{ value | round(1) }}"
   hass_state_class: total_increasing 
 
 "31112":
@@ -853,7 +853,7 @@
   mqtt: pv_total
   group: total
   hass_device_class: energy
-  hass_value_template: "{{ value | round(0) }}"
+  hass_value_template: "{{ value | round(1) }}"
   hass_state_class: total_increasing 
 
 #"31114":

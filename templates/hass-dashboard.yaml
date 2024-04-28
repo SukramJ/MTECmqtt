@@ -6,7 +6,7 @@ views:
     badges: []
     cards:
       - type: picture-elements
-        image: http://automation.fritz.box:8123/local/PV_background.png?v=1
+        image: /local/PV_background.png?v=1
         elements:
           - type: state-label
             entity: sensor.mtec_energybutler_pv_power
