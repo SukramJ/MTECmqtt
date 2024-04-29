@@ -44,13 +44,13 @@ class HassIntegration:
   def send_discovery_info( self ):
     _LOGGER.info('Sending home assistant discovery info')
     for device in self.devices_array:
-      mqtt_publish( topic=device[0], payload=device[1] ) 
+      mqtt_publish( topic=device[0], payload=device[1], retain=True)
 
   #---------------------------------------------------
   def send_unregister_info( self ):
     _LOGGER.info('Sending info to unregister from home assistant')
     for device in self.devices_array:
-      mqtt_publish( topic=device[0], payload="" ) 
+      mqtt_publish( topic=device[0], payload="", retain=False )
 
   #---------------------------------------------------
   def _build_automation_array( self ):

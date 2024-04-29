@@ -85,7 +85,7 @@ def write_to_MQTT( pvdata, base_topic ):
         payload = "{:d}".format( data )
       else:
         payload = data  
-    mqtt_publish( topic, payload )
+    mqtt_publish( topic, payload, False )
 
 #==========================================
 def main():

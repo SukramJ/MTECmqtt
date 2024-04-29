@@ -55,13 +55,13 @@ def mqtt_stop(client):
   except Exception as e:
     _LOGGER.warning("Couldn't stop MQTT: {}".format(str(e)))
 
-def mqtt_publish( topic, payload ):
+def mqtt_publish( topic, payload, retain ):
   if cfg['MQTT_DISABLE']: # Don't do anything - just logg
     _LOGGER.info("- {}: {}".format(topic, str(payload)))
   else:  
     auth = { 'username': cfg['MQTT_LOGIN'], 'password': cfg['MQTT_PASSWORD'] }  
     _LOGGER.debug("- {}: {}".format(topic, str(payload)))
     try:
-      publish.single(topic, payload=payload, hostname=cfg['MQTT_SERVER'], port=cfg['MQTT_PORT'], auth=auth)
+      publish.single(topic, client_id="mtecmqtt", payload=payload, hostname=cfg['MQTT_SERVER'], port=cfg['MQTT_PORT'], auth=auth, retain=retain)
     except Exception as e:
       _LOGGER.error("Could't send MQTT command: {}".format(str(e)))
