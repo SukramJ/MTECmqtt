@@ -186,8 +186,8 @@ def main():
     time.sleep(cfg['REFRESH_NOW'])
 
   # clean up
-  if hass:
-    hass.send_unregister_info()
+  #if hass:
+  #  hass.send_unregister_info()
   api.disconnect()
   mqtt_stop(mqttclient)
   logging.info("Exiting")
