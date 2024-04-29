@@ -9,6 +9,7 @@ import logging
 import json
 from mtecmqtt.mqtt import mqtt_publish
 
+_LOGGER = logging.getLogger(__name__)
 #---------------------------------------------------
 class HassIntegration:
   # Custom automations
@@ -41,13 +42,13 @@ class HassIntegration:
 
   #---------------------------------------------------
   def send_discovery_info( self ):
-    logging.info('Sending home assistant discovery info')
+    _LOGGER.info('Sending home assistant discovery info')
     for device in self.devices_array:
       mqtt_publish( topic=device[0], payload=device[1] ) 
 
   #---------------------------------------------------
   def send_unregister_info( self ):
-    logging.info('Sending info to unregister from home assistant')
+    _LOGGER.info('Sending info to unregister from home assistant')
     for device in self.devices_array:
       mqtt_publish( topic=device[0], payload="" ) 
 
@@ -129,7 +130,7 @@ def main():
   for i in hass.devices_array:
     topic = i[0]
     data = i[1]
-    logging.info( "- {}: {}".format(topic, data) )
+    _LOGGER.info( "- {}: {}".format(topic, data) )
 
 #---------------------------------------------------
 if __name__ == '__main__':

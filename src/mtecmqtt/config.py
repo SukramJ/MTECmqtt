@@ -8,6 +8,8 @@ import sys
 import logging
 import socket
 
+_LOGGER = logging.getLogger(__name__)
+
 #----------------------------------------
 # Create new config file
 def create_config_file():
@@ -53,10 +55,10 @@ def create_config_file():
     with open(cfg_fname, "w") as file: 
       file.write(data) 
   except Exception as ex:
-    logging.error("ERROR - Couldn't write {}: {}".format(cfg_fname, ex))
+    _LOGGER.error("ERROR - Couldn't write {}: {}".format(cfg_fname, ex))
     return False
 
-  logging.info("Successfully created {}".format(cfg_fname))
+  _LOGGER.info("Successfully created {}".format(cfg_fname))
   return True
 
 # Read configuration from YAML file
@@ -75,12 +77,12 @@ def init_config():
     try:
       with open(fname_conf, 'r', encoding='utf-8') as f_conf:
         cfg = yaml.safe_load(f_conf)
-        logging.info("Using config YAML file: {}".format(fname_conf) )      
+        _LOGGER.info("Using config YAML file: {}".format(fname_conf) )
         break
     except IOError as err:
-      logging.debug("Couldn't open config YAML file: {}".format(str(err)) )
+      _LOGGER.debug("Couldn't open config YAML file: {}".format(str(err)) )
     except yaml.YAMLError as err:
-      logging.debug("Couldn't read config YAML file {}: {}".format(fname_conf, str(err)) )
+      _LOGGER.debug("Couldn't read config YAML file {}: {}".format(fname_conf, str(err)) )
 
   return cfg  
 
@@ -93,10 +95,10 @@ def init_register_map():
     with open(fname_regs, 'r', encoding='utf-8') as f_regs:
       r_map = yaml.safe_load(f_regs)
   except IOError as err:
-    logging.fatal("Couldn't open registers YAML file: {}".format(str(err)))
+    _LOGGER.fatal("Couldn't open registers YAML file: {}".format(str(err)))
     sys.exit(1)
   except yaml.YAMLError as err:
-    logging.fatal("Couldn't read config YAML file {}: {}".format(fname_regs, str(err)) )
+    _LOGGER.fatal("Couldn't read config YAML file {}: {}".format(fname_regs, str(err)) )
     sys.exit(1)
     
   # Syntax checks 
@@ -121,7 +123,7 @@ def init_register_map():
     for p in p_mandatory: 
       error = False
       if not val.get(p):
-        logging.warning("Skipping invalid register config: {}. Missing mandatory parameter: {}.".format( key, p ))
+        _LOGGER.warning("Skipping invalid register config: {}. Missing mandatory parameter: {}.".format( key, p ))
         error = True
         break
 
@@ -143,10 +145,10 @@ if not cfg:
   if create_config_file():  # Create a new config
     cfg = init_config()
     if not cfg:
-      logging.fatal("Couldn't open config YAML file")
+      _LOGGER.fatal("Couldn't open config YAML file")
       sys.exit(1)
   else:
-    logging.fatal("Couldn't create config YAML file")
+    _LOGGER.fatal("Couldn't create config YAML file")
     sys.exit(1)
 
 register_map, register_groups = init_register_map()
@@ -154,6 +156,6 @@ register_map, register_groups = init_register_map()
 #--------------------------------------
 # Test code only
 if __name__ == "__main__":
-  logging.info( "Config: {}".format( str(cfg)) )
-  logging.info( "Register_map: {}".format( str(register_map)) )
+  _LOGGER.info( "Config: {}".format( str(cfg)) )
+  _LOGGER.info( "Register_map: {}".format( str(register_map)) )
   

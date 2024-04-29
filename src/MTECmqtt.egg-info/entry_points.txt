@@ -1,0 +1,4 @@
+[console_scripts]
+mtec_export = mtecmqtt.mtec_export:main
+mtec_mqtt = mtecmqtt.mtec_mqtt:main
+mtec_util = mtecmqtt.mtec_util:main

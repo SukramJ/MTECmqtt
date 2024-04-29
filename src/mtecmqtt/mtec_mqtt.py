@@ -17,16 +17,17 @@ from mtecmqtt.mqtt import mqtt_start, mqtt_stop, mqtt_publish
 from mtecmqtt.MTECmodbusAPI import MTECmodbusAPI
 from mtecmqtt.hass_int import HassIntegration
 
+_LOGGER = logging.getLogger(__name__)
 #----------------------------------
 def signal_handler(signal_number, frame):
   global run_status
-  logging.warning('Received Signal {}. Graceful shutdown initiated.'.format(signal_number))
+  _LOGGER.warning('Received Signal {}. Graceful shutdown initiated.'.format(signal_number))
   run_status = False
 
 # =============================================
 # read data from MTEC modbus
 def read_MTEC_data( api, group ):
-  logging.info("Reading registers for group: {}".format(group))
+  _LOGGER.info("Reading registers for group: {}".format(group))
   registers = api.get_register_list( group )
   now = datetime.now()
   data = api.read_modbus_data(registers=registers)
@@ -55,13 +56,13 @@ def read_MTEC_data( api, group ):
           elif register == "api-date":    
             pvdata[item["mqtt"]] = now.strftime("%Y-%m-%d %H:%M:%S") # Local time of this server
           else:  
-            logging.warning("Unknown calculated pseudo-register: {}".format(register))
+            _LOGGER.warning("Unknown calculated pseudo-register: {}".format(register))
 
           if isinstance(pvdata[item["mqtt"]], float) and pvdata[item["mqtt"]] < 0: # Avoid to report negative values, which might occur in some edge cases  
             pvdata[item["mqtt"]] = 0 
  
   except Exception as e:
-    logging.warning("Retrieved Modbus data is incomplete: {}".format(str(e)))
+    _LOGGER.warning("Retrieved Modbus data is incomplete: {}".format(str(e)))
     return None
   return pvdata
 
@@ -96,7 +97,7 @@ def main():
   signal.signal(signal.SIGINT, signal_handler)
   if cfg['DEBUG'] == True:
     logging.getLogger().setLevel(logging.DEBUG)
-  logging.info("Starting")
+  _LOGGER.info("Starting")
 
   next_read_config = datetime.now()
   next_read_day = datetime.now()
@@ -118,7 +119,7 @@ def main():
   while not pv_config:
     pv_config = read_MTEC_data( api, "config" )
     if not pv_config:
-      logging.warning("Cant retrieve initial config - retry in 10 s")
+      _LOGGER.warning("Cant retrieve initial config - retry in 10 s")
       time.sleep(10)
   
   topic_base = cfg['MQTT_TOPIC'] + '/' + pv_config["serial_no"]["value"] + '/'  
@@ -182,7 +183,7 @@ def main():
         write_to_MQTT( pvdata, topic_base + 'config/' )
         next_read_config = datetime.now() + timedelta(seconds=cfg['REFRESH_CONFIG'])
 
-    logging.debug("Sleep {}s".format( cfg['REFRESH_NOW'] ))
+    _LOGGER.debug("Sleep {}s".format( cfg['REFRESH_NOW'] ))
     time.sleep(cfg['REFRESH_NOW'])
 
   # clean up
@@ -190,7 +191,7 @@ def main():
   #  hass.send_unregister_info()
   api.disconnect()
   mqtt_stop(mqttclient)
-  logging.info("Exiting")
+  _LOGGER.info("Exiting")
  
 #---------------------------------------------------
 if __name__ == '__main__':

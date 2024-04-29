@@ -10,6 +10,8 @@ from pymodbus.constants import Endian
 from pymodbus.framer import Framer
 import logging
 
+_LOGGER = logging.getLogger(__name__)
+
 #=====================================================
 class MTECmodbusAPI:
   #-------------------------------------------------
@@ -17,7 +19,7 @@ class MTECmodbusAPI:
     self.modbus_client = None
     self.slave = 0
     self._cluster_cache = {}
-    logging.debug("API initialized")
+    _LOGGER.debug("API initialized")
 
   def __del__(self):
     self.disconnect()
@@ -28,15 +30,15 @@ class MTECmodbusAPI:
     self.slave = slave
     
     framer = cfg.get("MODBUS_FRAMER", "rtu")
-    logging.debug("Connecting to server {}:{} (framer={})".format(ip_addr, port, framer))
+    _LOGGER.debug("Connecting to server {}:{} (framer={})".format(ip_addr, port, framer))
     self.modbus_client = ModbusTcpClient(ip_addr, port, framer=Framer(framer), timeout=cfg["MODBUS_TIMEOUT"],
                                          retries=cfg["MODBUS_RETRIES"], retry_on_empty=True )
 
     if self.modbus_client.connect():
-      logging.debug("Successfully connected to server {}:{}".format(ip_addr, port))
+      _LOGGER.debug("Successfully connected to server {}:{}".format(ip_addr, port))
       return True
     else:
-      logging.error("Couldn't connect to server {}:{}".format(ip_addr, port))
+      _LOGGER.error("Couldn't connect to server {}:{}".format(ip_addr, port))
       return False
 
   #-------------------------------------------------
@@ -44,7 +46,7 @@ class MTECmodbusAPI:
   def disconnect( self ):
     if self.modbus_client and self.modbus_client.is_socket_open():
       self.modbus_client.close()
-      logging.debug("Successfully disconnected from server")
+      _LOGGER.debug("Successfully disconnected from server")
 
 #--------------------------------
   # Get a list of all registers which belong to a given group
@@ -55,7 +57,7 @@ class MTECmodbusAPI:
         registers.append(register)
 
     if len(registers)==0:
-      logging.error("Unknown or empty register group: {}".format(group))
+      _LOGGER.error("Unknown or empty register group: {}".format(group))
       return None              
     return registers
 
@@ -63,7 +65,7 @@ class MTECmodbusAPI:
   # This is the main API function. It either fetches all registers or a list of given registers
   def read_modbus_data(self, registers=None):
     data = {}
-    logging.debug("Retrieving data...")
+    _LOGGER.debug("Retrieving data...")
 
     if registers == None: # Create liset of all (numeric) registers
       registers = []
@@ -74,7 +76,7 @@ class MTECmodbusAPI:
     cluster_list = self._get_register_clusters(registers)
     for reg_cluster in cluster_list:
       offset = 0
-      logging.debug("Fetching data for cluster start {}, length {}, items {}".format(reg_cluster["start"], reg_cluster["length"], len(reg_cluster["items"])))
+      _LOGGER.debug("Fetching data for cluster start {}, length {}, items {}".format(reg_cluster["start"], reg_cluster["length"], len(reg_cluster["items"])))
       rawdata = self._read_registers(reg_cluster["start"], reg_cluster["length"])
       if rawdata:
         for item in reg_cluster["items"]:
@@ -84,10 +86,10 @@ class MTECmodbusAPI:
               register = str(reg_cluster["start"] + offset)
               data.update( {register: data_decoded} )
             else:
-              logging.error("Decoding error while decoding register {}".format(register))
+              _LOGGER.error("Decoding error while decoding register {}".format(register))
           offset += item["length"]
 
-    logging.debug("Data retrieval completed")
+    _LOGGER.debug("Data retrieval completed")
     return data
 
   #--------------------------------
@@ -96,10 +98,10 @@ class MTECmodbusAPI:
     # Lookup register
     item = register_map.get(str(register), None)
     if not item:
-      logging.error("Can't write unknown register: {}".format(register))
+      _LOGGER.error("Can't write unknown register: {}".format(register))
       return False
     elif item.get("writable", False) == False:
-      logging.error("Can't write register which is marked read-only: {}".format(register))
+      _LOGGER.error("Can't write register which is marked read-only: {}".format(register))
       return False
 
     # check value
@@ -110,7 +112,7 @@ class MTECmodbusAPI:
         else:
           value = int(value)  
     except Exception as ex:
-      logging.error("Invalid numeric value: {}".format(value))
+      _LOGGER.error("Invalid numeric value: {}".format(value))
       return False
 
     # adjust scale 
@@ -120,11 +122,11 @@ class MTECmodbusAPI:
     try:
       result = self.modbus_client.write_register(address=int(register), value=int(value), slave=self.slave )
     except Exception as ex:
-      logging.error("Exception while writing register {} to pymodbus: {}".format(register, ex))
+      _LOGGER.error("Exception while writing register {} to pymodbus: {}".format(register, ex))
       return False
 
     if result.isError():
-      logging.error("Error while writing register {} to pymodbus".format(register))
+      _LOGGER.error("Error while writing register {} to pymodbus".format(register))
       return False
     return True
 
@@ -161,7 +163,7 @@ class MTECmodbusAPI:
           cluster["length"] += item["length"]  
           cluster["items"].append(item)
         else:
-          logging.warning("Unknown register: {} - skipped.".format(register))
+          _LOGGER.warning("Unknown register: {} - skipped.".format(register))
 
     if cluster["start"] > 0: # append last cluster
       cluster_list.append(cluster)
@@ -174,13 +176,13 @@ class MTECmodbusAPI:
     try:
       result = self.modbus_client.read_holding_registers(address=int(register), count=length, slave=self.slave)
     except Exception as ex:
-      logging.error("Exception while reading register {}, length {} from pymodbus: {}".format(register, length, ex))
+      _LOGGER.error("Exception while reading register {}, length {} from pymodbus: {}".format(register, length, ex))
       return None
     if result.isError():
-      logging.error("Error while reading register {}, length {} from pymodbus".format(register, length))
+      _LOGGER.error("Error while reading register {}, length {} from pymodbus".format(register, length))
       return None
     if len(result.registers) != length:
-      logging.error("Error while reading register {} from pymodbus: Requested length {}, received {}".format(register, length, len(result.registers)))
+      _LOGGER.error("Error while reading register {} from pymodbus: Requested length {}, received {}".format(register, length, len(result.registers)))
       return None
     return result
 
@@ -221,7 +223,7 @@ class MTECmodbusAPI:
       elif item["type"] == 'STR':
         val = decoder.decode_string(item["length"]*2).decode()
       else:
-        logging.error("Unknown type {} to decode".format(item["type"]))
+        _LOGGER.error("Unknown type {} to decode".format(item["type"]))
         return None
       
       if val and item["scale"] > 1:
@@ -229,7 +231,7 @@ class MTECmodbusAPI:
       data = { "name":item["name"], "value":val, "unit":item["unit"] } 
       return data
     except Exception as ex:
-      logging.error("Exception while decoding data: {}".format(ex))
+      _LOGGER.error("Exception while decoding data: {}".format(ex))
       return None
 
 #--------------------------------
@@ -243,10 +245,10 @@ def main():
   api.connect(ip_addr=cfg['MODBUS_IP'], port=cfg['MODBUS_PORT'], slave=cfg['MODBUS_SLAVE'])
 
   # fetch all available data
-  logging.info("Fetching all data")
+  _LOGGER.info("Fetching all data")
   data = api.read_modbus_data()
   for param, val in data.items():
-    logging.info("- {} : {}".format(param, val))
+    _LOGGER.info("- {} : {}".format(param, val))
 
   api.disconnect()
 

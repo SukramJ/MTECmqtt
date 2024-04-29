@@ -7,15 +7,17 @@ import logging
 from mtecmqtt.config import cfg
 import time
 
+_LOGGER = logging.getLogger(__name__)
+
 try:
   import paho.mqtt.client as mqttcl
   import paho.mqtt.publish as publish
 except Exception as e:
-  logging.warning("MQTT not set up because of: {}".format(e))
+  _LOGGER.warning("MQTT not set up because of: {}".format(e))
     
 # ============ MQTT ================
 def on_mqtt_connect(mqttclient, userdata, flags, rc, prop):
-  logging.info("Connected to MQTT broker")
+  _LOGGER.info("Connected to MQTT broker")
 
 def on_mqtt_message(mqttclient, userdata, message):
   try:
@@ -23,11 +25,11 @@ def on_mqtt_message(mqttclient, userdata, message):
     topic = message.topic.split("/")
     if msg == "online" and userdata:
       gracetime = cfg.get("HASS_BIRTH_GRACETIME", 15)
-      logging.info("Received HASS online message. Sending discovery info in {} sec".format(gracetime))
+      _LOGGER.info("Received HASS online message. Sending discovery info in {} sec".format(gracetime))
       time.sleep(gracetime) # dirty workaround: hass requires some grace period for being ready to receive discovery info
       userdata.send_discovery_info()
   except Exception as e:
-    logging.warning("Error while handling MQTT message: {}".format(str(e)))
+    _LOGGER.warning("Error while handling MQTT message: {}".format(str(e)))
 
 def mqtt_start( hass=None ): 
   try: 
@@ -40,26 +42,26 @@ def mqtt_start( hass=None ):
     client.on_connect = on_mqtt_connect
     client.on_message = on_mqtt_message
     client.loop_start()
-    logging.info('MQTT server started')
+    _LOGGER.info('MQTT server started')
     return client
   except Exception as e:
-    logging.warning("Couldn't start MQTT: {}".format(str(e)))
+    _LOGGER.warning("Couldn't start MQTT: {}".format(str(e)))
     return None
 
 def mqtt_stop(client):
   try: 
     client.loop_stop()
-    logging.info('MQTT server stopped')
+    _LOGGER.info('MQTT server stopped')
   except Exception as e:
-    logging.warning("Couldn't stop MQTT: {}".format(str(e)))
+    _LOGGER.warning("Couldn't stop MQTT: {}".format(str(e)))
 
 def mqtt_publish( topic, payload ):
   if cfg['MQTT_DISABLE']: # Don't do anything - just logg
-    logging.info("- {}: {}".format(topic, str(payload)))
+    _LOGGER.info("- {}: {}".format(topic, str(payload)))
   else:  
     auth = { 'username': cfg['MQTT_LOGIN'], 'password': cfg['MQTT_PASSWORD'] }  
-    logging.debug("- {}: {}".format(topic, str(payload)))
+    _LOGGER.debug("- {}: {}".format(topic, str(payload)))
     try:
       publish.single(topic, payload=payload, hostname=cfg['MQTT_SERVER'], port=cfg['MQTT_PORT'], auth=auth)
     except Exception as e:
-      logging.error("Could't send MQTT command: {}".format(str(e)))
+      _LOGGER.error("Could't send MQTT command: {}".format(str(e)))
