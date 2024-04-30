@@ -21,13 +21,13 @@ _LOGGER = logging.getLogger(__name__)
 #----------------------------------
 def signal_handler(signal_number, frame):
   global run_status
-  _LOGGER.warning('Received Signal {}. Graceful shutdown initiated.'.format(signal_number))
+  _LOGGER.warning('Received Signal %s. Graceful shutdown initiated.', signal_number)
   run_status = False
 
 # =============================================
 # read data from MTEC modbus
 def read_MTEC_data( api, group ):
-  _LOGGER.info("Reading registers for group: {}".format(group))
+  _LOGGER.info("Reading registers for group: %s", group)
   registers = api.get_register_list( group )
   now = datetime.now()
   data = api.read_modbus_data(registers=registers)
@@ -56,13 +56,13 @@ def read_MTEC_data( api, group ):
           elif register == "api-date":    
             pvdata[item["mqtt"]] = now.strftime("%Y-%m-%d %H:%M:%S") # Local time of this server
           else:  
-            _LOGGER.warning("Unknown calculated pseudo-register: {}".format(register))
+            _LOGGER.warning("Unknown calculated pseudo-register: %s", register)
 
           if isinstance(pvdata[item["mqtt"]], float) and pvdata[item["mqtt"]] < 0: # Avoid to report negative values, which might occur in some edge cases  
             pvdata[item["mqtt"]] = 0 
  
   except Exception as e:
-    _LOGGER.warning("Retrieved Modbus data is incomplete: {}".format(str(e)))
+    _LOGGER.warning("Retrieved Modbus data is incomplete: %s", str(e))
     return None
   return pvdata
 
@@ -183,7 +183,7 @@ def main():
         write_to_MQTT( pvdata, topic_base + 'config/' )
         next_read_config = datetime.now() + timedelta(seconds=cfg['REFRESH_CONFIG'])
 
-    _LOGGER.debug("Sleep {}s".format( cfg['REFRESH_NOW'] ))
+    _LOGGER.debug("Sleep %ss",  cfg['REFRESH_NOW'] )
     time.sleep(cfg['REFRESH_NOW'])
 
   # clean up

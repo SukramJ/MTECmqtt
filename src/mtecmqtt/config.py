@@ -18,7 +18,7 @@ def create_config_file():
   # Resolve hostname
   try:
     ip_addr=socket.gethostbyname('espressif')
-    print("Found espressif server: {}".format(ip_addr))
+    print(f"Found espressif server: {ip_addr}")
   except socket.error:
     print("Couldn't find espressif server")
     ip_addr=input("Please enter IP address of espressif server: ")
@@ -36,7 +36,7 @@ def create_config_file():
     with open(templ_fname, "r") as file: 
       data = file.read()   
   except Exception as ex:
-    print("ERROR - Couldn't read 'config-template.yaml': {}".format(ex))
+    print(f"ERROR - Couldn't read 'config-template.yaml': {ex}")
     return False
 
   # Customize
@@ -55,10 +55,10 @@ def create_config_file():
     with open(cfg_fname, "w") as file: 
       file.write(data) 
   except Exception as ex:
-    _LOGGER.error("ERROR - Couldn't write {}: {}".format(cfg_fname, ex))
+    _LOGGER.error("ERROR - Couldn't write %s: %s", cfg_fname, ex)
     return False
 
-  _LOGGER.info("Successfully created {}".format(cfg_fname))
+  _LOGGER.info("Successfully created %s", cfg_fname)
   return True
 
 # Read configuration from YAML file
@@ -77,12 +77,12 @@ def init_config():
     try:
       with open(fname_conf, 'r', encoding='utf-8') as f_conf:
         cfg = yaml.safe_load(f_conf)
-        _LOGGER.info("Using config YAML file: {}".format(fname_conf) )
+        _LOGGER.info("Using config YAML file: %s", fname_conf)
         break
     except IOError as err:
-      _LOGGER.debug("Couldn't open config YAML file: {}".format(str(err)) )
+      _LOGGER.debug("Couldn't open config YAML file: %s", str(err))
     except yaml.YAMLError as err:
-      _LOGGER.debug("Couldn't read config YAML file {}: {}".format(fname_conf, str(err)) )
+      _LOGGER.debug("Couldn't read config YAML file %s: %s", fname_conf, str(err))
 
   return cfg  
 
@@ -95,10 +95,10 @@ def init_register_map():
     with open(fname_regs, 'r', encoding='utf-8') as f_regs:
       r_map = yaml.safe_load(f_regs)
   except IOError as err:
-    _LOGGER.fatal("Couldn't open registers YAML file: {}".format(str(err)))
+    _LOGGER.fatal("Couldn't open registers YAML file: %s", str(err))
     sys.exit(1)
   except yaml.YAMLError as err:
-    _LOGGER.fatal("Couldn't read config YAML file {}: {}".format(fname_regs, str(err)) )
+    _LOGGER.fatal("Couldn't read config YAML file %s: %s", fname_regs, str(err))
     sys.exit(1)
     
   # Syntax checks 
@@ -123,7 +123,7 @@ def init_register_map():
     for p in p_mandatory: 
       error = False
       if not val.get(p):
-        _LOGGER.warning("Skipping invalid register config: {}. Missing mandatory parameter: {}.".format( key, p ))
+        _LOGGER.warning("Skipping invalid register config: %s. Missing mandatory parameter: %s.",  key, p )
         error = True
         break
 
@@ -156,6 +156,6 @@ register_map, register_groups = init_register_map()
 #--------------------------------------
 # Test code only
 if __name__ == "__main__":
-  _LOGGER.info( "Config: {}".format( str(cfg)) )
-  _LOGGER.info( "Register_map: {}".format( str(register_map)) )
+  _LOGGER.info( "Config: %s",  str(cfg))
+  _LOGGER.info( "Register_map: %s",  str(register_map))
   

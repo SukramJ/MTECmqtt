@@ -31,7 +31,7 @@ def main():
   # redirect stdout to file (if defined as command line parameter)
   if args.file:  
     try:
-      print( "Writing output to '{}'".format(args.file) )
+      print(f"Writing output to '{args.file}'")
       if args.csv:  
         print( "CSV format selected" )
       if args.append:
@@ -42,7 +42,7 @@ def main():
       original_stdout = sys.stdout
       sys.stdout = open(args.file, f_mode)
     except:  
-      print( "ERROR - Unable to open output file '{}'".format(args.file) )
+      print( f"ERROR - Unable to open output file '{args.file}'")
       exit(1)
 
   registers = None

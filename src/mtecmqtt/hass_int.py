@@ -130,7 +130,7 @@ def main():
   for i in hass.devices_array:
     topic = i[0]
     data = i[1]
-    _LOGGER.info( "- {}: {}".format(topic, data) )
+    _LOGGER.info( "- %s: %s", topic, data)
 
 #---------------------------------------------------
 if __name__ == '__main__':

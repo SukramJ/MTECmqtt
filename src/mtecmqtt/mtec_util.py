@@ -18,7 +18,7 @@ def read_register(api):
   data = api.read_modbus_data( registers=[register] )
   if data: 
     item = data.get(register)
-    print("Register {} ({}): {} {}".format(register, item["name"], item["value"], item["unit"]))
+    print(f"Register {register} ({item["name"]}): {item["value"]} {item["unit"]})
 
 #-------------------------------
 def read_register_group(api):
@@ -92,7 +92,7 @@ def list_register_config(api):
 def list_register_config_by_groups(api):
   for group in register_groups:  
     print( "-------------------------------------" )
-    print( "Group {}:".format(group) ) 
+    print( f"Group {group}:")
     print( "" )
     print( "Reg   MQTT Parameter                 Unit Mode Name                   " )
     print( "----- ------------------------------ ---- ---- -----------------------" )
