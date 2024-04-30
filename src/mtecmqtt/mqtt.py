@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MQTT client base implemantation
+MQTT client base implementation
 (c) 2024 by Christian Rödel 
 """
 import logging
@@ -41,9 +41,9 @@ def mqtt_start(hass=None):
         client = mqttcl.Client(mqttcl.CallbackAPIVersion.VERSION2)
         client.user_data_set(hass)  # register home automation instance
         client.username_pw_set(cfg['MQTT_LOGIN'], cfg['MQTT_PASSWORD'])
-        client.connect(cfg['MQTT_SERVER'], cfg['MQTT_PORT'], keepalive=60)
+        client.connect(cfg['MQTT_SERVER'], cfg['MQTT_PORT'])
         if hass:
-            client.subscribe(cfg["HASS_BASE_TOPIC"] + "/status", qos=0)
+            client.subscribe(cfg["HASS_BASE_TOPIC"] + "/status")
         client.on_connect = on_mqtt_connect
         client.on_message = on_mqtt_message
         client.loop_start()

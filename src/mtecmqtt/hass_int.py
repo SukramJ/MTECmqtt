@@ -26,6 +26,7 @@ class HassIntegration:
         self.serial_no = None
         self.is_initialized = False
         self.devices_array = []
+        self.device_info = {}
 
     # ---------------------------------------------------
     def initialize(self, serial_no):

@@ -29,7 +29,7 @@ def signal_handler(signal_number, frame):
 
 # =============================================
 # read data from MTEC modbus
-def read_MTEC_data(api, group):
+def read_mtec_data(api, group):
     _LOGGER.info("Reading registers for group: %s", group)
     registers = api.get_register_list(group)
     now = datetime.now()
@@ -38,38 +38,32 @@ def read_MTEC_data(api, group):
     try:  # assign all data
         for register in registers:
             item = register_map[register]
-            if item["mqtt"]:
+            if mqtt_item := item["mqtt"]:
                 if register.isnumeric():
-                    pvdata[item["mqtt"]] = data[register]
+                    pvdata[mqtt_item] = data[register]
                 else:  # non-numeric registers are deemed to be calculated pseudo-registers
                     if register == "consumption":
-                        pvdata[item["mqtt"]] = data["11016"]["value"] - data["11000"]["value"]  # power consumption
+                        pvdata[mqtt_item] = data["11016"]["value"] - data["11000"]["value"]  # power consumption
                     elif register == "consumption-day":
-                        pvdata[item["mqtt"]] = data["31005"]["value"] + data["31001"]["value"] + data["31004"][
+                        pvdata[mqtt_item] = data["31005"]["value"] + data["31001"]["value"] + data["31004"][
                             "value"] - data["31000"]["value"] - data["31003"]["value"]  # power consumption
                     elif register == "autarky-day":
-                        pvdata[item["mqtt"]] = 100 * (1 - (data["31001"]["value"] / pvdata["consumption_day"])) if \
-                        pvdata["consumption_day"] > 0 else 0
+                        pvdata[mqtt_item] = 100 * (1 - (data["31001"]["value"] / pvdata["consumption_day"])) if pvdata["consumption_day"] > 0 else 0
                     elif register == "ownconsumption-day":
-                        pvdata[item["mqtt"]] = 100 * (1 - data["31000"]["value"] / data["31005"]["value"]) if \
-                        data["31005"]["value"] > 0 else 0
+                        pvdata[mqtt_item] = 100 * (1 - data["31000"]["value"] / data["31005"]["value"]) if data["31005"]["value"] > 0 else 0
                     elif register == "consumption-total":
-                        pvdata[item["mqtt"]] = data["31112"]["value"] + data["31104"]["value"] + data["31110"][
-                            "value"] - data["31102"]["value"] - data["31108"]["value"]  # power consumption
+                        pvdata[mqtt_item] = data["31112"]["value"] + data["31104"]["value"] + data["31110"]["value"] - data["31102"]["value"] - data["31108"]["value"]  # power consumption
                     elif register == "autarky-total":
-                        pvdata[item["mqtt"]] = 100 * (1 - (data["31104"]["value"] / pvdata["consumption_total"])) if \
-                        pvdata["consumption_total"] > 0 else 0
+                        pvdata[mqtt_item] = 100 * (1 - (data["31104"]["value"] / pvdata["consumption_total"])) if pvdata["consumption_total"] > 0 else 0
                     elif register == "ownconsumption-total":
-                        pvdata[item["mqtt"]] = 100 * (1 - data["31102"]["value"] / data["31112"]["value"]) if \
-                        data["31112"]["value"] > 0 else 0
+                        pvdata[mqtt_item] = 100 * (1 - data["31102"]["value"] / data["31112"]["value"]) if data["31112"]["value"] > 0 else 0
                     elif register == "api-date":
-                        pvdata[item["mqtt"]] = now.strftime("%Y-%m-%d %H:%M:%S")  # Local time of this server
+                        pvdata[mqtt_item] = now.strftime("%Y-%m-%d %H:%M:%S")  # Local time of this server
                     else:
                         _LOGGER.warning("Unknown calculated pseudo-register: %s", register)
 
-                    if isinstance(pvdata[item["mqtt"]], float) and pvdata[
-                        item["mqtt"]] < 0:  # Avoid to report negative values, which might occur in some edge cases
-                        pvdata[item["mqtt"]] = 0
+                    if isinstance(pvdata[mqtt_item], float) and pvdata[mqtt_item] < 0:  # Avoid to report negative values, which might occur in some edge cases
+                        pvdata[mqtt_item] = 0
 
     except Exception as e:
         _LOGGER.warning("Retrieved Modbus data is incomplete: %s", str(e))
@@ -79,7 +73,7 @@ def read_MTEC_data(api, group):
 
 # ----------------------------------
 # write data to MQTT
-def write_to_MQTT(pvdata, base_topic):
+def write_to_mqtt(pvdata, base_topic):
     for param, data in pvdata.items():
         topic = base_topic + param
         if isinstance(data, dict):
@@ -107,7 +101,7 @@ def main():
     # Initialization
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
-    if cfg['DEBUG'] == True:
+    if cfg['DEBUG'] is True:
         logging.getLogger().setLevel(logging.DEBUG)
     _LOGGER.info("Starting")
 
@@ -129,7 +123,7 @@ def main():
     # Initialize
     pv_config = None
     while not pv_config:
-        pv_config = read_MTEC_data(api, "config")
+        pv_config = read_mtec_data(api, "config")
         if not pv_config:
             _LOGGER.warning("Cant retrieve initial config - retry in 10 s")
             time.sleep(10)
@@ -143,31 +137,31 @@ def main():
         now = datetime.now()
 
         # Now base
-        pvdata = read_MTEC_data(api, "now-base")
+        pvdata = read_mtec_data(api, "now-base")
         if pvdata:
-            write_to_MQTT(pvdata, topic_base + 'now-base/')
+            write_to_mqtt(pvdata, topic_base + 'now-base/')
 
         # Now extended - read groups in a round robin - one per loop
         if now_ext_idx == 0:
-            pvdata = read_MTEC_data(api, "now-grid")
+            pvdata = read_mtec_data(api, "now-grid")
             if pvdata:
-                write_to_MQTT(pvdata, topic_base + 'now-grid/')
+                write_to_mqtt(pvdata, topic_base + 'now-grid/')
         elif now_ext_idx == 1:
-            pvdata = read_MTEC_data(api, "now-inverter")
+            pvdata = read_mtec_data(api, "now-inverter")
             if pvdata:
-                write_to_MQTT(pvdata, topic_base + 'now-inverter/')
+                write_to_mqtt(pvdata, topic_base + 'now-inverter/')
         elif now_ext_idx == 2:
-            pvdata = read_MTEC_data(api, "now-backup")
+            pvdata = read_mtec_data(api, "now-backup")
             if pvdata:
-                write_to_MQTT(pvdata, topic_base + 'now-backup/')
+                write_to_mqtt(pvdata, topic_base + 'now-backup/')
         elif now_ext_idx == 3:
-            pvdata = read_MTEC_data(api, "now-battery")
+            pvdata = read_mtec_data(api, "now-battery")
             if pvdata:
-                write_to_MQTT(pvdata, topic_base + 'now-battery/')
+                write_to_mqtt(pvdata, topic_base + 'now-battery/')
         elif now_ext_idx == 4:
-            pvdata = read_MTEC_data(api, "now-pv")
+            pvdata = read_mtec_data(api, "now-pv")
             if pvdata:
-                write_to_MQTT(pvdata, topic_base + 'now-pv/')
+                write_to_mqtt(pvdata, topic_base + 'now-pv/')
 
         if now_ext_idx >= 4:
             now_ext_idx = 0
@@ -176,23 +170,23 @@ def main():
 
         # Day
         if next_read_day <= now:
-            pvdata = read_MTEC_data(api, "day")
+            pvdata = read_mtec_data(api, "day")
             if pvdata:
-                write_to_MQTT(pvdata, topic_base + 'day/')
+                write_to_mqtt(pvdata, topic_base + 'day/')
                 next_read_day = datetime.now() + timedelta(seconds=cfg['REFRESH_DAY'])
 
         # Total
         if next_read_total <= now:
-            pvdata = read_MTEC_data(api, "total")
+            pvdata = read_mtec_data(api, "total")
             if pvdata:
-                write_to_MQTT(pvdata, topic_base + 'total/')
+                write_to_mqtt(pvdata, topic_base + 'total/')
                 next_read_total = datetime.now() + timedelta(seconds=cfg['REFRESH_TOTAL'])
 
         # Config
         if next_read_config <= now:
-            pvdata = read_MTEC_data(api, "config")
+            pvdata = read_mtec_data(api, "config")
             if pvdata:
-                write_to_MQTT(pvdata, topic_base + 'config/')
+                write_to_mqtt(pvdata, topic_base + 'config/')
                 next_read_config = datetime.now() + timedelta(seconds=cfg['REFRESH_CONFIG'])
 
         _LOGGER.debug("Sleep %ss", cfg['REFRESH_NOW'])
