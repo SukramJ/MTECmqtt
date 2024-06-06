@@ -88,12 +88,12 @@
 
 #------------------------------------------------------------------
 # Modbus registers
-"10000": 
-  name: Inverter serial number
-  length: 8 
-  type: STR
-  mqtt: serial_no
-  group: config
+#1"10000":
+#1  name: Inverter serial number
+#1  length: 8
+#1  type: STR
+#1  mqtt: serial_no
+#1  group: config
 
 #"10008":
 #  name: Equipment info
@@ -101,12 +101,12 @@
 #  type: BYTE
 #  group: config
 
-"10011":
-  name: Firmware version
-  length: 4
-  type: BYTE
-  mqtt: firmware_version
-  group: config
+#1"10011":
+#1  name: Firmware version
+#1  length: 4
+#1  type: BYTE
+#1  mqtt: firmware_version
+#1  group: config
 
 "10100":
   name: Inverter date
@@ -969,28 +969,28 @@
   hass_device_class: enum
   hass_value_template: "{% if value=='257' %}General mode{% elif value=='258' %}Economic mode{% elif value=='259' %}UPS mode{% elif value=='512' %}Off grid{% elif value=='771' %}Manual mode{% else %}Unknown{% endif %}"
 
-"25100":
-  name: Grid injection limit switch
-  length: 1
-  type: U16
-  writable: True 
-  mqtt: grid_inject_switch 
-  group: config
-  hass_component_type: binary_sensor
-  hass_payload_on: "1"
-  hass_payload_off: "0"  
+#1"25100":
+#1  name: Grid injection limit switch
+#1  length: 1
+#1  type: U16
+#1  writable: True
+#1  mqtt: grid_inject_switch
+#1  group: config
+#1  hass_component_type: binary_sensor
+#1  hass_payload_on: "1"
+#1  hass_payload_off: "0"
 
-"25103":
-  name: Grid injection power limit
-  length: 1
-  type: U16
-  unit: "%"
-  scale: 10
-  writable: True 
-  mqtt: grid_inject_limit 
-  group: config
-  hass_value_template: "{{ value | round(1) }}"
-  hass_state_class: measurement 
+#1"25103":
+#1  name: Grid injection power limit
+#1  length: 1
+#1  type: U16
+#1  unit: "%"
+#1  scale: 10
+#1  writable: True
+#1  mqtt: grid_inject_limit
+#1  group: config
+#1  hass_value_template: "{{ value | round(1) }}"
+#1  hass_state_class: measurement
 
 "52502":
   name: On-grid SOC limit switch
