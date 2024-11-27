@@ -5,8 +5,9 @@ Modbus API for M-TEC Energybutler.
 """
 
 from __future__ import annotations
-from typing import Any
+
 import logging
+from typing import Any
 
 from pymodbus.client import ModbusTcpClient
 from pymodbus.constants import Endian
@@ -32,7 +33,7 @@ class MTECModbusClient:
         """Cleanup the modbus client."""
         self.disconnect()
 
-    def connect(self, ip_addr: str, port: int, slave: int)-> bool:
+    def connect(self, ip_addr: str, port: int, slave: int) -> bool:
         """Connect to modbus server."""
         self._slave = slave
 
@@ -111,7 +112,7 @@ class MTECModbusClient:
         _LOGGER.debug("Data retrieval completed")
         return data
 
-    def write_register(self, register, value)-> bool:
+    def write_register(self, register, value) -> bool:
         """Write a value to a register."""
         # Lookup register
         item = register_map.get(str(register), None)
@@ -252,8 +253,10 @@ class MTECModbusClient:
 
 
 def main():
-    """Start the client.
-    The main() function is just a demo code how to use the API."""
+    """
+    Start the client.
+    The main() function is just a demo code how to use the API.
+    """
     logging.basicConfig()
     if cfg["DEBUG"] is True:
         logging.getLogger().setLevel(logging.DEBUG)

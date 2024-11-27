@@ -817,7 +817,7 @@
   group: total
   hass_device_class: energy
   hass_value_template: "{{ value | round(1) }}"
-  hass_state_class: total_increasing 
+  hass_state_class: total_increasing
 
 "31108":
   name: Battery energy charged (total)
@@ -829,7 +829,7 @@
   group: total
   hass_device_class: energy
   hass_value_template: "{{ value | round(1) }}"
-  hass_state_class: total_increasing 
+  hass_state_class: total_increasing
 
 "31110":
   name: Battery energy discharged (total)
@@ -841,7 +841,7 @@
   group: total
   hass_device_class: energy
   hass_value_template: "{{ value | round(1) }}"
-  hass_state_class: total_increasing 
+  hass_state_class: total_increasing
 
 "31112":
   name: PV energy generated (total)

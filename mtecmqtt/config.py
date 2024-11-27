@@ -14,6 +14,7 @@ import yaml
 
 _LOGGER = logging.getLogger(__name__)
 
+
 # ----------------------------------------
 # Create new config file
 def create_config_file() -> bool:
@@ -67,6 +68,7 @@ def create_config_file() -> bool:
 
     _LOGGER.info("Successfully created %s", cfg_fname)
     return True
+
 
 def init_config() -> bool:
     """Read configuration from YAML file."""

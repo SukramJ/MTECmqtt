@@ -14,7 +14,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 # -------------------------------
-def read_register(api):
+def read_register(api) -> None:
+    """Read register."""
     _LOGGER.info("-------------------------------------")
     register = input("Register: ")
     data = api.read_modbus_data(registers=[register])
@@ -26,7 +27,8 @@ def read_register(api):
 
 
 # -------------------------------
-def read_register_group(api):
+def read_register_group(api) -> None:
+    """Read register group."""
     _LOGGER.info("-------------------------------------")
     line = "Groups: "
     for g in sorted(register_groups):
@@ -51,7 +53,8 @@ def read_register_group(api):
 
 
 # -------------------------------
-def write_register(api):
+def write_register(api) -> None:
+    """Write register."""
     _LOGGER.info("-------------------------------------")
     _LOGGER.info("Current settings of writable registers:")
     _LOGGER.info("Reg   Name                           Value  Unit")
@@ -86,7 +89,8 @@ def write_register(api):
     # -------------------------------
 
 
-def list_register_config(api):
+def list_register_config(api) -> None:
+    """List register config."""
     _LOGGER.info("-------------------------------------")
     _LOGGER.info(
         "Reg   MQTT Parameter                 Unit Mode Group           Name                   "
@@ -113,6 +117,7 @@ def list_register_config(api):
 
 # -------------------------------
 def list_register_config_by_groups(api):
+    """List register config by groups."""
     for group in register_groups:
         _LOGGER.info("-------------------------------------")
         _LOGGER.info("Group %s:", group)
@@ -137,6 +142,7 @@ def list_register_config_by_groups(api):
 
 # -------------------------------
 def main():
+    """Main function."""
     api = MTECModbusClient()
     api.connect(ip_addr=cfg["MODBUS_IP"], port=cfg["MODBUS_PORT"], slave=cfg["MODBUS_SLAVE"])
 
@@ -160,7 +166,7 @@ def main():
             read_register(api)
         elif opt == "5":
             write_register(api)
-        elif opt == "x" or opt == "X":
+        elif opt in ("x", "X"):
             break
 
     api.disconnect()
