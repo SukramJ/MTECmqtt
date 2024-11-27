@@ -1,5 +1,6 @@
 """
 Read YAML config files.
+
 (c) 2024 by Christian Rödel
 """
 
@@ -18,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 # ----------------------------------------
 # Create new config file
 def create_config_file() -> bool:
-    """Read the config file-"""
+    """Read the config file."""
     _LOGGER.info("Creating config.yaml")
 
     # Resolve hostname
@@ -30,10 +31,7 @@ def create_config_file() -> bool:
         ip_addr = input("Please enter IP address of espressif server: ")
 
     opt = input("Enable HomeAssistant support? (y/N): ")
-    if opt.lower() == "y":
-        hass_cfg = "HASS_ENABLE : True"
-    else:
-        hass_cfg = "HASS_ENABLE : False"
+    hass_cfg = "HASS_ENABLE : True" if opt.lower() == "y" else "HASS_ENABLE : False"
 
     # Read template
     try:
@@ -50,8 +48,8 @@ def create_config_file() -> bool:
     data = data.replace("MODBUS_IP : espressif", 'MODBUS_IP : "' + ip_addr + '"')
 
     # Write customized config
-    cfg_path = os.environ.get("XDG_CONFIG_HOME") or os.environ.get("APPDATA")
-    if cfg_path:  # Usually something like ~/.config/mtecmqtt/config.yaml resp. 'C:\\Users\\xxxx\\AppData\\Roaming'
+    # Usually something like ~/.config/mtecmqtt/config.yaml resp. 'C:\\Users\\xxxx\\AppData\\Roaming'
+    if cfg_path := os.environ.get("XDG_CONFIG_HOME") or os.environ.get("APPDATA"):
         cfg_fname = os.path.join(cfg_path, "mtecmqtt", "config.yaml")
     else:
         cfg_fname = os.path.join(
@@ -75,8 +73,8 @@ def init_config() -> bool:
     # Look in different locations for config.yaml file
     conf_files = []
     conf_files.append(os.path.join(os.getcwd(), "config.yaml"))  # CWD/config.yaml
-    cfg_path = os.environ.get("XDG_CONFIG_HOME") or os.environ.get("APPDATA")
-    if cfg_path:  # Usually something like ~/.config/mtecmqtt/config.yaml resp. 'C:\\Users\\xxxx\\AppData\\Roaming'
+    # Usually something like ~/.config/mtecmqtt/config.yaml resp. 'C:\\Users\\xxxx\\AppData\\Roaming'
+    if cfg_path := os.environ.get("XDG_CONFIG_HOME") or os.environ.get("APPDATA"):
         conf_files.append(os.path.join(cfg_path, "mtecmqtt", "config.yaml"))
     else:
         conf_files.append(

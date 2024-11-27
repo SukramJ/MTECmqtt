@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
 """
-Test connection to M-TEC Energybutler
+Test connection to M-TEC Energybutler.
+
 (c) 2024 by Christian Rödel
 """
 
@@ -16,19 +16,24 @@ _LOGGER = logging.getLogger(__name__)
 
 # =====================================================
 class MTECmodbusAPI:
+    """A modbus api for tests."""
+
     # -------------------------------------------------
     def __init__(self):
+        """Init the api."""
         self.modbus_client = None
         self.slave = 0
         self._cluster_cache = {}
         _LOGGER.debug("API initialized")
 
     def __del__(self):
+        """Disconnect on delete."""
         self.disconnect()
 
     # -------------------------------------------------
     # Connect to Modbus server
     def connect(self, ip_addr, port, slave):
+        """Connect to M-TEC Energybutler."""
         self.slave = slave
 
         framer = "rtu"
@@ -51,6 +56,7 @@ class MTECmodbusAPI:
     # -------------------------------------------------
     # Disconnect from Modbus server
     def disconnect(self):
+        """Disconnect from server."""
         if self.modbus_client and self.modbus_client.is_socket_open():
             self.modbus_client.close()
             _LOGGER.debug("Successfully disconnected from server")
@@ -59,6 +65,7 @@ class MTECmodbusAPI:
 # --------------------------------
 # The main() function is just a demo code how to use the API
 def main():
+    """Start the test."""
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
 

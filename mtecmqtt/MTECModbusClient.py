@@ -75,9 +75,10 @@ class MTECModbusClient:
     def read_modbus_data(self, registers=None) -> dict[int, Any]:
         """
         Read modbus data.
+
         This is the main API function. It either fetches all registers or a list of given registers.
         """
-        data: dict[int, Any] = {}
+        data: dict[str, Any] = {}
         _LOGGER.debug("Retrieving data...")
 
         if registers is None:  # Create a list of all (numeric) registers
@@ -97,12 +98,10 @@ class MTECModbusClient:
                 reg_cluster["length"],
                 len(reg_cluster["items"]),
             )
-            rawdata = self._read_registers(reg_cluster["start"], reg_cluster["length"])
-            if rawdata:
+            if rawdata := self._read_registers(reg_cluster["start"], reg_cluster["length"]):
                 for item in reg_cluster["items"]:
                     if item.get("type"):  # type==None means dummy
-                        data_decoded = self._decode_rawdata(rawdata, offset, item)
-                        if data_decoded:
+                        if data_decoded := self._decode_rawdata(rawdata, offset, item):
                             register = str(reg_cluster["start"] + offset)
                             data.update({register: data_decoded})
                         else:
@@ -115,8 +114,7 @@ class MTECModbusClient:
     def write_register(self, register, value) -> bool:
         """Write a value to a register."""
         # Lookup register
-        item = register_map.get(str(register), None)
-        if not item:
+        if not (item := register_map.get(str(register), None)):
             _LOGGER.error("Can't write unknown register: %s", register)
             return False
         if item.get("writable", False) is False:
@@ -151,8 +149,8 @@ class MTECModbusClient:
     def _get_register_clusters(self, registers):
         """Cluster registers in order to optimize modbus traffic."""
         # Cache clusters to avoid unnecessary overhead
-        idx = str(registers)  # use stringified version of list as index
-        if idx not in self._cluster_cache:
+        # use stringified version of list as index
+        if (idx := str(registers)) not in self._cluster_cache:
             self._cluster_cache[idx] = self._create_register_clusters(registers)
         return self._cluster_cache[idx]
 
@@ -163,8 +161,7 @@ class MTECModbusClient:
 
         for register in sorted(registers):
             if register.isnumeric():  # ignore non-numeric pseudo registers
-                item = register_map.get(register)
-                if item:
+                if item := register_map.get(register):
                     if int(register) > cluster["start"] + cluster["length"]:  # there is a gap
                         if cluster["start"] > 0:  # except for first cluster
                             cluster_list.append(cluster)
@@ -180,7 +177,7 @@ class MTECModbusClient:
         return cluster_list
 
     def _read_registers(self, register, length):
-        """Do the actual reading from modbus"""
+        """Do the actual reading from modbus."""
         try:
             result = self._modbus_client.read_holding_registers(
                 address=int(register), count=length, slave=self._slave
@@ -255,6 +252,7 @@ class MTECModbusClient:
 def main():
     """
     Start the client.
+
     The main() function is just a demo code how to use the API.
     """
     logging.basicConfig()

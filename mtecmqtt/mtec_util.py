@@ -1,5 +1,6 @@
 """
-This is a test utility for MTEC Modbus API.
+A test utility for MTEC Modbus API.
+
 (c) 2023 by Christian Rödel
 """
 
@@ -32,10 +33,9 @@ def read_register_group(api) -> None:
     line = "Groups: "
     for g in sorted(register_groups):
         line += g + ", "
-    _LOGGER.info(line + "all")
+    _LOGGER.info("%s %s", line, "all")
 
-    group = input("Register group (or RETURN for all): ")
-    if group == "" or group == "all":
+    if (group := input("Register group (or RETURN for all): ")) in ("", "all"):
         registers = None
     elif not api.get_register_list(group):
         return
@@ -43,9 +43,7 @@ def read_register_group(api) -> None:
     _LOGGER.info("Reading...")
     if data := api.read_modbus_data(registers=registers):
         for register, item in data.items():
-            _LOGGER.info(
-                "- {}: {:50s} {} {}".format(register, item["name"], item["value"], item["unit"])
-            )
+            _LOGGER.info("- %s;: %s; %s; %s;", register, item["name"], item["value"], item["unit"])
 
 
 # -------------------------------
@@ -63,9 +61,7 @@ def write_register(api) -> None:
             if data:
                 value = data[register]["value"]
             unit = item["unit"] if item["unit"] else ""
-            _LOGGER.info(
-                "{:5s} {:30s} {:6s} {:4s} ".format(register, item["name"], str(value), unit)
-            )
+            _LOGGER.info("%s; %s; %s; %s", register, item["name"], str(value), unit)
 
     _LOGGER.info("")
     register = input("Register: ")
@@ -103,11 +99,7 @@ def list_register_config(api) -> None:
         unit = item["unit"] if item["unit"] else ""
         group = item["group"] if item["group"] else ""
         mode = "RW" if item["writable"] else "R"
-        _LOGGER.info(
-            "{:5s} {:30s} {:4s} {:4s} {:15s} {}".format(
-                register, mqtt, unit, mode, group, item["name"]
-            )
-        )
+        _LOGGER.info("%s; %s; %s; %s; %s; %s", register, mqtt, unit, mode, group, item["name"])
 
 
 # -------------------------------
@@ -130,14 +122,14 @@ def list_register_config_by_groups(api):
                 unit = item["unit"] if item["unit"] else ""
                 mode = "RW" if item["writable"] else "R"
                 _LOGGER.info(
-                    "{:5s} {:30s} {:4s} {:4s} {}".format(register, mqtt, unit, mode, item["name"])
+                    "%s; %s; %s; %s; %s; %s", group, register, mqtt, unit, mode, item["name"]
                 )
         _LOGGER.info("")
 
 
 # -------------------------------
 def main():
-    """Main function."""
+    """Start main function."""
     api = MTECModbusClient()
     api.connect(ip_addr=cfg["MODBUS_IP"], port=cfg["MODBUS_PORT"], slave=cfg["MODBUS_SLAVE"])
 

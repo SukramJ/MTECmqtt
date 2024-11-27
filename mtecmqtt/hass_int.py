@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
 """
-Auto discovery for home assistant
+Auto discovery for home assistant.
+
 (c) 2024 by Christian Rödel
 """
 
@@ -26,6 +26,7 @@ class HassIntegration:
 
     # -------------------------------------------------
     def __init__(self):
+        """Init hass integration."""
         self.serial_no = None
         self.is_initialized = False
         self.devices_array = []
@@ -33,6 +34,7 @@ class HassIntegration:
 
     # ---------------------------------------------------
     def initialize(self, serial_no):
+        """Initialize."""
         self.serial_no = serial_no
         self.device_info = {
             "identifiers": [self.serial_no],
@@ -50,6 +52,7 @@ class HassIntegration:
         # ---------------------------------------------------
 
     def send_discovery_info(self):
+        """Send discovery info."""
         _LOGGER.info("Sending home assistant discovery info")
         for device in self.devices_array:
             mqtt_publish(topic=device[0], payload=device[1])
@@ -57,6 +60,7 @@ class HassIntegration:
             # ---------------------------------------------------
 
     def send_unregister_info(self):
+        """Send unregister info."""
         _LOGGER.info("Sending info to unregister from home assistant")
         for device in self.devices_array:
             mqtt_publish(topic=device[0], payload="")
@@ -78,12 +82,12 @@ class HassIntegration:
 
             # ---------------------------------------------------
 
-    # build discovery data for devices
     def _build_devices_array(self):
-        for register, item in register_map.items():
+        """Build discovery data for devices."""
+        for item in register_map.values():
             # Do registration if there is a "hass_" config entry
             do_hass_registration = False
-            for key in item.keys():
+            for key in item:
                 if "hass_" in key:
                     do_hass_registration = True
                     break
@@ -138,13 +142,14 @@ class HassIntegration:
 
 # Testcode only
 def main():
+    """Start hass integration."""
     hass = HassIntegration()
     hass.initialize("my_serial_number")
 
     for i in hass.devices_array:
         topic = i[0]
         data = i[1]
-        _LOGGER.info(f"- {topic}: {data}")
+        _LOGGER.info("- %s: %s", topic, data)
 
 
 # ---------------------------------------------------

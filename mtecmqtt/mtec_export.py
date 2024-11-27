@@ -1,5 +1,6 @@
 """
-This tool enables to query MTEC Modbus API and export the data in various ways.
+A tool that enables to query MTEC Modbus API and export the data in various ways.
+
 (c) 2024 by Christian Rödel
 """
 
@@ -17,6 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # -----------------------------
 def parse_options():
+    """Parse the options."""
     groups = sorted(register_groups)
     groups.append("all")
 
@@ -47,6 +49,7 @@ def parse_options():
 
 # -------------------------------
 def main():
+    """Start the mqtt export."""
     args = parse_options()
     api = MTECModbusClient()
     _LOGGER.info("Reading data...")
@@ -64,9 +67,9 @@ def main():
                 f_mode = "w"
             original_stdout = sys.stdout
             sys.stdout = open(args.file, f_mode)
-        except:
+        except Exception:
             _LOGGER.info("ERROR - Unable to open output file '%s'", args.file)
-            exit(1)
+            sys.exit(1)
 
     registers = None
     if args.group and args.group != "all":

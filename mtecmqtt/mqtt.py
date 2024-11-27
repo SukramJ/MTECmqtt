@@ -1,5 +1,6 @@
 """
 MQTT client base implementation.
+
 (c) 2024 by Christian Rödel
 """
 
@@ -21,13 +22,15 @@ except Exception as e:
 
 # ============ MQTT ================
 def on_mqtt_connect(mqttclient, userdata, flags, rc, prop):
+    """Handle mqtt connect."""
     _LOGGER.info("Connected to MQTT broker")
 
 
 def on_mqtt_message(mqttclient, userdata, message):
+    """Handle received message."""
     try:
         msg = message.payload.decode("utf-8")
-        topic = message.topic.split("/")
+        # topic = message.topic.split("/")
         if msg == "online" and userdata:
             gracetime = cfg.get("HASS_BIRTH_GRACETIME", 15)
             _LOGGER.info(
@@ -42,6 +45,7 @@ def on_mqtt_message(mqttclient, userdata, message):
 
 
 def mqtt_start(hass=None):
+    """Start the MQTT client."""
     try:
         client = mqttcl.Client(mqttcl.CallbackAPIVersion.VERSION2)
         client.user_data_set(hass)  # register home automation instance
@@ -55,13 +59,15 @@ def mqtt_start(hass=None):
         client.on_message = on_mqtt_message
         client.loop_start()
         _LOGGER.info("MQTT server started")
-        return client
     except Exception as e:
         _LOGGER.warning("Couldn't start MQTT: %s", str(e))
         return None
+    else:
+        return client
 
 
 def mqtt_stop(client):
+    """Stop the MQTT client."""
     try:
         client.loop_stop()
         _LOGGER.info("MQTT server stopped")
@@ -70,6 +76,7 @@ def mqtt_stop(client):
 
 
 def mqtt_publish(topic, payload):
+    """Publish mqtt message."""
     if cfg["MQTT_DISABLE"]:  # Don't do anything - just logg
         _LOGGER.info("- %s: %s", topic, str(payload))
     else:

@@ -1,4 +1,4 @@
-"""MTEC Mqtt"""
+"""MTEC Mqtt."""
 
 from __future__ import annotations
 

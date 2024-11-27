@@ -1,5 +1,6 @@
 """
-MQTT server for M-TEC Energybutler reading modbus data
+MQTT server for M-TEC Energybutler reading modbus data.
+
 (c) 2024 by Christian Rödel
 """
 
@@ -20,14 +21,14 @@ _LOGGER = logging.getLogger(__name__)
 
 # ----------------------------------
 def signal_handler(signal_number, frame):
+    """Signal shutdown."""
     global run_status
     _LOGGER.warning("Received Signal %s. Graceful shutdown initiated.", signal_number)
     run_status = False
 
 
-# =============================================
-# read data from MTEC modbus
 def read_MTEC_data(api, group):
+    """Read data from MTEC modbus."""
     _LOGGER.info("Reading registers for group: %s", group)
     registers = api.get_register_list(group)
     now = datetime.now()
@@ -102,9 +103,8 @@ def read_MTEC_data(api, group):
     return pvdata
 
 
-# ----------------------------------
-# write data to MQTT
 def write_to_MQTT(pvdata, base_topic):
+    """Write data to MQTT."""
     for param, data in pvdata.items():
         topic = base_topic + param
         if isinstance(data, dict):
@@ -125,13 +125,14 @@ def write_to_MQTT(pvdata, base_topic):
 
 # ==========================================
 def main():
+    """Stat mtec mqtt."""
     global run_status
     run_status = True
 
     # Initialization
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
-    if cfg["DEBUG"] == True:
+    if cfg["DEBUG"] is True:
         logging.getLogger().setLevel(logging.DEBUG)
     _LOGGER.info("Starting")
 
@@ -141,10 +142,7 @@ def main():
     now_ext_idx = 0
     topic_base = None
 
-    if cfg["HASS_ENABLE"]:
-        hass = HassIntegration()
-    else:
-        hass = None
+    hass = HassIntegration() if cfg["HASS_ENABLE"] else None
 
     mqttclient = mqtt_start(hass)
     api = MTECModbusClient()
@@ -153,8 +151,7 @@ def main():
     # Initialize
     pv_config = None
     while not pv_config:
-        pv_config = read_MTEC_data(api, "config")
-        if not pv_config:
+        if not (pv_config := read_MTEC_data(api, "config")):
             _LOGGER.warning("Can't retrieve initial config - retry in 10 s")
             time.sleep(10)
 
@@ -167,31 +164,20 @@ def main():
         now = datetime.now()
 
         # Now base
-        pvdata = read_MTEC_data(api, "now-base")
-        if pvdata:
+        if pvdata := read_MTEC_data(api, "now-base"):
             write_to_MQTT(pvdata, topic_base + "now-base/")
 
         # Now extended - read groups in a round robin - one per loop
-        if now_ext_idx == 0:
-            pvdata = read_MTEC_data(api, "now-grid")
-            if pvdata:
-                write_to_MQTT(pvdata, topic_base + "now-grid/")
-        elif now_ext_idx == 1:
-            pvdata = read_MTEC_data(api, "now-inverter")
-            if pvdata:
-                write_to_MQTT(pvdata, topic_base + "now-inverter/")
-        elif now_ext_idx == 2:
-            pvdata = read_MTEC_data(api, "now-backup")
-            if pvdata:
-                write_to_MQTT(pvdata, topic_base + "now-backup/")
-        elif now_ext_idx == 3:
-            pvdata = read_MTEC_data(api, "now-battery")
-            if pvdata:
-                write_to_MQTT(pvdata, topic_base + "now-battery/")
-        elif now_ext_idx == 4:
-            pvdata = read_MTEC_data(api, "now-pv")
-            if pvdata:
-                write_to_MQTT(pvdata, topic_base + "now-pv/")
+        if now_ext_idx == 0 and (pvdata := read_MTEC_data(api, "now-grid")):
+            write_to_MQTT(pvdata, topic_base + "now-grid/")
+        elif now_ext_idx == 1 and (pvdata := read_MTEC_data(api, "now-inverter")):
+            write_to_MQTT(pvdata, topic_base + "now-inverter/")
+        elif now_ext_idx == 2 and (pvdata := read_MTEC_data(api, "now-backup")):
+            write_to_MQTT(pvdata, topic_base + "now-backup/")
+        elif now_ext_idx == 3 and (pvdata := read_MTEC_data(api, "now-battery")):
+            write_to_MQTT(pvdata, topic_base + "now-battery/")
+        elif now_ext_idx == 4 and (pvdata := read_MTEC_data(api, "now-pv")):
+            write_to_MQTT(pvdata, topic_base + "now-pv/")
 
         if now_ext_idx >= 4:
             now_ext_idx = 0
@@ -199,27 +185,21 @@ def main():
             now_ext_idx += 1
 
         # Day
-        if next_read_day <= now:
-            pvdata = read_MTEC_data(api, "day")
-            if pvdata:
-                write_to_MQTT(pvdata, topic_base + "day/")
-                next_read_day = datetime.now() + timedelta(seconds=cfg["REFRESH_DAY"])
+        if next_read_day <= now and (pvdata := read_MTEC_data(api, "day")):
+            write_to_MQTT(pvdata, topic_base + "day/")
+            next_read_day = datetime.now() + timedelta(seconds=cfg["REFRESH_DAY"])
 
         # Total
-        if next_read_total <= now:
-            pvdata = read_MTEC_data(api, "total")
-            if pvdata:
-                write_to_MQTT(pvdata, topic_base + "total/")
-                next_read_total = datetime.now() + timedelta(seconds=cfg["REFRESH_TOTAL"])
+        if next_read_total <= now and (pvdata := read_MTEC_data(api, "total")):
+            write_to_MQTT(pvdata, topic_base + "total/")
+            next_read_total = datetime.now() + timedelta(seconds=cfg["REFRESH_TOTAL"])
 
         # Config
-        if next_read_config <= now:
-            pvdata = read_MTEC_data(api, "config")
-            if pvdata:
-                write_to_MQTT(pvdata, topic_base + "config/")
-                next_read_config = datetime.now() + timedelta(seconds=cfg["REFRESH_CONFIG"])
+        if next_read_config <= now and (pvdata := read_MTEC_data(api, "config")):
+            write_to_MQTT(pvdata, topic_base + "config/")
+            next_read_config = datetime.now() + timedelta(seconds=cfg["REFRESH_CONFIG"])
 
-        _LOGGER.debug("Sleep {}s".format(cfg["REFRESH_NOW"]))
+        _LOGGER.debug("Sleep %ss", cfg["REFRESH_NOW"])
         time.sleep(cfg["REFRESH_NOW"])
 
     # clean up
