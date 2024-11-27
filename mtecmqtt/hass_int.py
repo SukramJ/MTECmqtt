@@ -1,38 +1,37 @@
 #!/usr/bin/env python3
 """
 Auto discovery for home assistant
-(c) 2024 by Christian Rödel 
+(c) 2024 by Christian Rödel
 """
 
-import json
-import logging
-
 from mtecmqtt.config import cfg, register_map
+import logging
+import json
 from mtecmqtt.mqtt import mqtt_publish
 
 _LOGGER = logging.getLogger(__name__)
 
-
-# ---------------------------------------------------
 class HassIntegration:
+    """HA integration."""
+
     # Custom automations
     buttons = [
         # name                        unique_id                   payload_press
         #    [ "Set general mode",         "MTEC_load_battery_btn",    "load_battery_from_grid" ],
     ]
 
-    # -------------------------------------------------
+    #-------------------------------------------------
     def __init__(self):
         self.serial_no = None
         self.is_initialized = False
         self.devices_array = []
         self.device_info = {}
 
-    # ---------------------------------------------------
-    def initialize(self, serial_no):
+    #---------------------------------------------------
+    def initialize( self, serial_no ):
         self.serial_no = serial_no
         self.device_info = {
-            "identifiers": [self.serial_no],
+            "identifiers": [ self.serial_no ],
             "name": "MTEC Energybutler",
             "manufacturer": "MTEC",
             "model": "Energybutler",
@@ -44,21 +43,20 @@ class HassIntegration:
         self.send_discovery_info()
         self.is_initialized = True
 
-        # ---------------------------------------------------
-
-    def send_discovery_info(self):
+        #---------------------------------------------------
+    def send_discovery_info( self ):
         _LOGGER.info('Sending home assistant discovery info')
         for device in self.devices_array:
-            mqtt_publish(topic=device[0], payload=device[1], retain=True)
+            mqtt_publish( topic=device[0], payload=device[1] )
 
-    # ---------------------------------------------------
-    def send_unregister_info(self):
+            #---------------------------------------------------
+    def send_unregister_info( self ):
         _LOGGER.info('Sending info to unregister from home assistant')
         for device in self.devices_array:
-            mqtt_publish(topic=device[0], payload="", retain=False)
+            mqtt_publish( topic=device[0], payload="" )
 
-    # ---------------------------------------------------
-    def _build_automation_array(self):
+            #---------------------------------------------------
+    def _build_automation_array( self ):
         # Buttons
         for item in self.buttons:
             data_item = {
@@ -69,12 +67,11 @@ class HassIntegration:
                 "device": self.device_info
             }
             topic = cfg["HASS_BASE_TOPIC"] + "/button/" + item[1] + "/config"
-            self.devices_array.append([topic, json.dumps(data_item)])
+            self.devices_array.append( [topic, json.dumps(data_item)] )
 
-            # ---------------------------------------------------
-
+            #---------------------------------------------------
     # build discovery data for devices
-    def _build_devices_array(self):
+    def _build_devices_array( self ):
         for register, item in register_map.items():
             # Do registration if there is a "hass_" config entry
             do_hass_registration = False
@@ -90,9 +87,8 @@ class HassIntegration:
                 if component_type == "binary_sensor":
                     self._append_binary_sensor(item)
 
-                    # ---------------------------------------------------
-
-    def _append_sensor(self, item):
+                    #---------------------------------------------------
+    def _append_sensor( self, item ):
         data_item = {
             "name": item["name"],
             "unique_id": "MTEC_" + item["mqtt"],
@@ -108,10 +104,10 @@ class HassIntegration:
             data_item["state_class"] = item["hass_state_class"]
 
         topic = cfg["HASS_BASE_TOPIC"] + "/sensor/" + "MTEC_" + item["mqtt"] + "/config"
-        self.devices_array.append([topic, json.dumps(data_item)])
+        self.devices_array.append( [topic, json.dumps(data_item)] )
 
-    # ---------------------------------------------------
-    def _append_binary_sensor(self, item):
+    #---------------------------------------------------
+    def _append_binary_sensor( self, item ):
         data_item = {
             "name": item["name"],
             "unique_id": "MTEC_" + item["mqtt"],
@@ -126,22 +122,19 @@ class HassIntegration:
             data_item["payload_off"] = item["hass_payload_off"]
 
         topic = cfg["HASS_BASE_TOPIC"] + "/binary_sensor/" + "MTEC_" + item["mqtt"] + "/config"
-        self.devices_array.append([topic, json.dumps(data_item)])
+        self.devices_array.append( [topic, json.dumps(data_item)] )
 
-    # ---------------------------------------------------
-
-
+    #---------------------------------------------------
 # Testcode only
 def main():
     hass = HassIntegration()
-    hass.initialize("my_serial_number")
+    hass.initialize( "my_serial_number" )
 
     for i in hass.devices_array:
         topic = i[0]
         data = i[1]
-        _LOGGER.info("- %s: %s", topic, data)
+        _LOGGER.info( "- {}: {}".format(topic, data) )
 
-
-# ---------------------------------------------------
+#---------------------------------------------------
 if __name__ == '__main__':
     main()

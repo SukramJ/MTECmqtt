@@ -164,4 +164,3 @@ sensor.mtec_energybutler_pv2_power:
   friendly_name: PV2 Leistung
 sensor.mtec_energybutler_pv2_voltage:
   friendly_name: PV2 Spannung
-  
