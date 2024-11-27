@@ -206,7 +206,7 @@ REFRESH_CONFIG  : 3600        # Refresh config data every N seconds
 If you want to enable Home Assistant support, set `HASS_ENABLE: True` in `config.yaml`.
 
 ```
-# Home Assistent
+# Home Assistant
 HASS_ENABLE : True                # Enable home assistant support
 HASS_BASE_TOPIC : homeassistant   # Basis MQTT topic of home assistant
 HASS_BIRTH_GRACETIME : 15         # Give HASS some time to get ready after the birth message was received

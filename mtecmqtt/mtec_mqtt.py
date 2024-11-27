@@ -155,7 +155,7 @@ def main():
     while not pv_config:
         pv_config = read_MTEC_data(api, "config")
         if not pv_config:
-            _LOGGER.warning("Cant retrieve initial config - retry in 10 s")
+            _LOGGER.warning("Can't retrieve initial config - retry in 10 s")
             time.sleep(10)
 
     topic_base = cfg["MQTT_TOPIC"] + "/" + pv_config["serial_no"]["value"] + "/"

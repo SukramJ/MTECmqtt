@@ -63,7 +63,7 @@ def main():
     logging.getLogger().setLevel(logging.DEBUG)
 
     print("Please enter")
-    ip_addr = input("espressif server IP Adress: ")
+    ip_addr = input("espressif server IP Address: ")
     port = input("espressif Port (Standard is 5743): ")
 
     api = MTECmodbusAPI()

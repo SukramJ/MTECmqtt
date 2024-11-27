@@ -84,4 +84,4 @@ def mqtt_publish(topic, payload):
                 auth=auth,
             )
         except Exception as e:
-            _LOGGER.error("Could't send MQTT command: %s", str(e))
+            _LOGGER.error("Couldn't send MQTT command: %s", str(e))

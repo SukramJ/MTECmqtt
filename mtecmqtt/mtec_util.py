@@ -18,8 +18,7 @@ def read_register(api) -> None:
     """Read register."""
     _LOGGER.info("-------------------------------------")
     register = input("Register: ")
-    data = api.read_modbus_data(registers=[register])
-    if data:
+    if data := api.read_modbus_data(registers=[register]):
         item = data.get(register)
         _LOGGER.info(
             "Register %s (%s): %s %s", register, item["name"], item["value"], item["unit"]
@@ -38,14 +37,11 @@ def read_register_group(api) -> None:
     group = input("Register group (or RETURN for all): ")
     if group == "" or group == "all":
         registers = None
-    else:
-        registers = api.get_register_list(group)
-        if not registers:
-            return
+    elif not api.get_register_list(group):
+        return
 
     _LOGGER.info("Reading...")
-    data = api.read_modbus_data(registers=registers)
-    if data:
+    if data := api.read_modbus_data(registers=registers):
         for register, item in data.items():
             _LOGGER.info(
                 "- {}: {:50s} {} {}".format(register, item["name"], item["value"], item["unit"])
@@ -77,9 +73,8 @@ def write_register(api) -> None:
 
     _LOGGER.info("WARNING: Be careful when writing registers to your Inverter!")
     yn = input(f"Do you really want to set register {register} to '{value}'? (y/N)")
-    if yn == "y" or yn == "Y":
-        ret = api.write_register(register=register, value=value)
-        if ret == True:
+    if yn in ("y", "Y"):
+        if api.write_register(register=register, value=value):
             _LOGGER.info("New value successfully set")
         else:
             _LOGGER.info("Writing failed")

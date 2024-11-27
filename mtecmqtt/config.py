@@ -130,7 +130,7 @@ def init_register_map() -> tuple[dict[str, dict[str, str]], list[str]]:
     register_groups: list[str] = []
 
     for key, val in r_map.items():
-        # Check for mandatory paramaters
+        # Check for mandatory parameters
         for p in p_mandatory:
             error = False
             if not val.get(p):
@@ -142,7 +142,7 @@ def init_register_map() -> tuple[dict[str, dict[str, str]], list[str]]:
                 error = True
                 break
 
-        if not error:  # All madatory parameters found
+        if not error:  # All mandatory parameters found
             item = val.copy()
             # Check optional parameters and add defaults, if not found
             for p in p_optional:
@@ -156,11 +156,9 @@ def init_register_map() -> tuple[dict[str, dict[str, str]], list[str]]:
 
 # ----------------------------------------
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(filename)s: %(message)s")
-cfg = init_config()
-if not cfg:
+if not init_config():
     if create_config_file():  # Create a new config
-        cfg = init_config()
-        if not cfg:
+        if not init_config():
             _LOGGER.fatal("Couldn't open config YAML file")
             sys.exit(1)
     else:
