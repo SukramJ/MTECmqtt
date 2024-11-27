@@ -1,4 +1,4 @@
-# evcc.yaml snippet 
+# evcc.yaml snippet
 # can be used as template for an integration of your MTEC inverter into evcc
 
 # Meters
@@ -27,7 +27,7 @@ meters:
       broker: localhost:1883
       topic: MTEC/<MTEC_SERIAL_NO>/now-base/battery
       scale: 1
-    soc: # Battery SOC (%) 
+    soc: # Battery SOC (%)
       source: mqtt
       broker: localhost:1883
       topic: MTEC/<MTEC_SERIAL_NO>/now-base/battery_soc
