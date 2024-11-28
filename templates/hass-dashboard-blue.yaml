@@ -116,7 +116,7 @@ views:
               color: black
   - path: statistics
     title: Statistics
-    icon: ''
+    icon: ""
     type: sidebar
     badges: []
     cards:
@@ -190,11 +190,11 @@ views:
                 needle: true
                 segments:
                   - from: 0
-                    color: '#db4437'
+                    color: "#db4437"
                   - from: 30
-                    color: '#ffa600'
+                    color: "#ffa600"
                   - from: 70
-                    color: '#43a047'
+                    color: "#43a047"
               - type: history-graph
                 name: SOC
                 entities:
@@ -226,22 +226,22 @@ views:
                 needle: true
                 segments:
                   - from: 0
-                    color: '#db4437'
+                    color: "#db4437"
                   - from: 30
-                    color: '#ffa600'
+                    color: "#ffa600"
                   - from: 70
-                    color: '#43a047'
+                    color: "#43a047"
               - type: gauge
                 entity: sensor.mtec_energybutler_own_consumption_rate_day
                 name: Own consumption rate
                 needle: true
                 segments:
                   - from: 0
-                    color: '#db4437'
+                    color: "#db4437"
                   - from: 30
-                    color: '#ffa600'
+                    color: "#ffa600"
                   - from: 70
-                    color: '#43a047'
+                    color: "#43a047"
       - type: horizontal-stack
         cards:
           - type: entities
@@ -269,22 +269,22 @@ views:
                 needle: true
                 segments:
                   - from: 0
-                    color: '#db4437'
+                    color: "#db4437"
                   - from: 30
-                    color: '#ffa600'
+                    color: "#ffa600"
                   - from: 70
-                    color: '#43a047'
+                    color: "#43a047"
               - type: gauge
                 entity: sensor.mtec_energybutler_own_consumption_rate_total
                 name: Own consumption rate
                 needle: true
                 segments:
                   - from: 0
-                    color: '#db4437'
+                    color: "#db4437"
                   - from: 30
-                    color: '#ffa600'
+                    color: "#ffa600"
                   - from: 70
-                    color: '#43a047'
+                    color: "#43a047"
   - title: Details
     path: details
     type: sidebar
