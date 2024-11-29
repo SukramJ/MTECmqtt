@@ -12,22 +12,8 @@ import signal
 import time
 from typing import Any
 
-from mtecmqtt import hass_int, modbus_client
+from mtecmqtt import const, hass_int, modbus_client
 from mtecmqtt.config import CONFIG, REGISTER_MAP
-from mtecmqtt.const import (
-    CFG_DEBUG,
-    CFG_HASS_ENABLE,
-    CFG_MODBUS_IP,
-    CFG_MODBUS_PORT,
-    CFG_MODBUS_SLAVE,
-    CFG_MQTT_FLOAT_FORMAT,
-    CFG_REFRESH_CONFIG,
-    CFG_REFRESH_DAY,
-    CFG_REFRESH_NOW,
-    CFG_REFRESH_TOTAL,
-    MQTT,
-    VALUE,
-)
 from mtecmqtt.mqtt import mqtt_publish, mqtt_start, mqtt_stop
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,69 +39,73 @@ def read_mtec_data(api: modbus_client.MTECModbusClient, group: str) -> PVDATA_TY
     try:  # assign all data
         for register in registers:
             item = REGISTER_MAP[register]
-            if item[MQTT]:
+            if item[const.REG_MQTT]:
                 if register.isnumeric():
-                    pvdata[item[MQTT]] = data[register]
+                    pvdata[item[const.REG_MQTT]] = data[register]
                 else:  # non-numeric registers are deemed to be calculated pseudo-registers
                     if register == "consumption":
-                        pvdata[item[MQTT]] = (
-                            data["11016"][VALUE] - data["11000"][VALUE]
+                        pvdata[item[const.REG_MQTT]] = (
+                            data["11016"][const.REG_VALUE] - data["11000"][const.REG_VALUE]
                         )  # power consumption
                     elif register == "consumption-day":
-                        pvdata[item[MQTT]] = (
-                            data["31005"][VALUE]
-                            + data["31001"][VALUE]
-                            + data["31004"][VALUE]
-                            - data["31000"][VALUE]
-                            - data["31003"][VALUE]
+                        pvdata[item[const.REG_MQTT]] = (
+                            data["31005"][const.REG_VALUE]
+                            + data["31001"][const.REG_VALUE]
+                            + data["31004"][const.REG_VALUE]
+                            - data["31000"][const.REG_VALUE]
+                            - data["31003"][const.REG_VALUE]
                         )  # power consumption
                     elif register == "autarky-day":
-                        pvdata[item[MQTT]] = (
-                            100 * (1 - (data["31001"][VALUE] / pvdata["consumption_day"]))
+                        pvdata[item[const.REG_MQTT]] = (
+                            100
+                            * (1 - (data["31001"][const.REG_VALUE] / pvdata["consumption_day"]))
                             if isinstance(pvdata["consumption_day"], float | int)
                             and float(pvdata["consumption_day"]) > 0
                             else 0
                         )
                     elif register == "ownconsumption-day":
-                        pvdata[item[MQTT]] = (
-                            100 * (1 - data["31000"][VALUE] / data["31005"][VALUE])
-                            if data["31005"][VALUE] > 0
+                        pvdata[item[const.REG_MQTT]] = (
+                            100
+                            * (1 - data["31000"][const.REG_VALUE] / data["31005"][const.REG_VALUE])
+                            if data["31005"][const.REG_VALUE] > 0
                             else 0
                         )
                     elif register == "consumption-total":
-                        pvdata[item[MQTT]] = (
-                            data["31112"][VALUE]
-                            + data["31104"][VALUE]
-                            + data["31110"][VALUE]
-                            - data["31102"][VALUE]
-                            - data["31108"][VALUE]
+                        pvdata[item[const.REG_MQTT]] = (
+                            data["31112"][const.REG_VALUE]
+                            + data["31104"][const.REG_VALUE]
+                            + data["31110"][const.REG_VALUE]
+                            - data["31102"][const.REG_VALUE]
+                            - data["31108"][const.REG_VALUE]
                         )  # power consumption
                     elif register == "autarky-total":
-                        pvdata[item[MQTT]] = (
-                            100 * (1 - (data["31104"][VALUE] / pvdata["consumption_total"]))
+                        pvdata[item[const.REG_MQTT]] = (
+                            100
+                            * (1 - (data["31104"][const.REG_VALUE] / pvdata["consumption_total"]))
                             if isinstance(pvdata["consumption_total"], float | int)
                             and float(pvdata["consumption_total"]) > 0
                             else 0
                         )
                     elif register == "ownconsumption-total":
-                        pvdata[item[MQTT]] = (
-                            100 * (1 - data["31102"][VALUE] / data["31112"][VALUE])
-                            if data["31112"][VALUE] > 0
+                        pvdata[item[const.REG_MQTT]] = (
+                            100
+                            * (1 - data["31102"][const.REG_VALUE] / data["31112"][const.REG_VALUE])
+                            if data["31112"][const.REG_VALUE] > 0
                             else 0
                         )
                     elif register == "api-date":
-                        pvdata[item[MQTT]] = now.strftime(
+                        pvdata[item[const.REG_MQTT]] = now.strftime(
                             "%Y-%m-%d %H:%M:%S"
                         )  # Local time of this server
                     else:
                         _LOGGER.warning("Unknown calculated pseudo-register: %s", register)
 
                     if (
-                        (value := pvdata[item[MQTT]])
+                        (value := pvdata[item[const.REG_MQTT]])
                         and isinstance(value, float)
                         and float(value) < 0
                     ):  # Avoid to report negative values, which might occur in some edge cases
-                        pvdata[item[MQTT]] = 0
+                        pvdata[item[const.REG_MQTT]] = 0
 
     except Exception as e:
         _LOGGER.warning("Retrieved Modbus data is incomplete: %s", str(e))
@@ -128,15 +118,15 @@ def write_to_mqtt(pvdata: PVDATA_TYPE, base_topic: str) -> None:
     for param, data in pvdata.items():
         topic = base_topic + param
         if isinstance(data, dict):
-            value = data[VALUE]
+            value = data[const.REG_VALUE]
             if isinstance(value, float):
-                payload = CONFIG[CFG_MQTT_FLOAT_FORMAT].format(value)
+                payload = CONFIG[const.CFG_MQTT_FLOAT_FORMAT].format(value)
             elif isinstance(value, bool):
                 payload = f"{value:d}"
             else:
                 payload = value
         elif isinstance(data, float):
-            payload = CONFIG[CFG_MQTT_FLOAT_FORMAT].format(data)
+            payload = CONFIG[const.CFG_MQTT_FLOAT_FORMAT].format(data)
         elif isinstance(data, bool):
             payload = f"{data:d}"
         else:
@@ -153,7 +143,7 @@ def main() -> None:
     # Initialization
     signal.signal(signalnum=signal.SIGTERM, handler=signal_handler)
     signal.signal(signalnum=signal.SIGINT, handler=signal_handler)
-    if CONFIG[CFG_DEBUG] is True:
+    if CONFIG[const.CFG_DEBUG] is True:
         logging.getLogger().setLevel(level=logging.DEBUG)
     _LOGGER.info("Starting")
 
@@ -163,12 +153,14 @@ def main() -> None:
     now_ext_idx = 0
     topic_base = None
 
-    hass = hass_int.HassIntegration() if CONFIG[CFG_HASS_ENABLE] else None
+    hass = hass_int.HassIntegration() if CONFIG[const.CFG_HASS_ENABLE] else None
 
     mqttclient = mqtt_start(hass=hass)
     api = modbus_client.MTECModbusClient()
     api.connect(
-        ip_addr=CONFIG[CFG_MODBUS_IP], port=CONFIG[CFG_MODBUS_PORT], slave=CONFIG[CFG_MODBUS_SLAVE]
+        ip_addr=CONFIG[const.CFG_MODBUS_IP],
+        port=CONFIG[const.CFG_MODBUS_PORT],
+        slave=CONFIG[const.CFG_MODBUS_SLAVE],
     )
 
     # Initialize
@@ -178,9 +170,9 @@ def main() -> None:
             _LOGGER.warning("Can't retrieve initial config - retry in 10 s")
             time.sleep(10)
 
-    topic_base = f"{CONFIG['MQTT_TOPIC']}/{pv_config['serial_no'][VALUE]}/"  # type: ignore[unreachable]
+    topic_base = f"{CONFIG['MQTT_TOPIC']}/{pv_config['serial_no'][const.REG_VALUE]}/"  # type: ignore[unreachable]
     if hass and not hass.is_initialized:
-        hass.initialize(serial_no=pv_config["serial_no"][VALUE])
+        hass.initialize(serial_no=pv_config["serial_no"][const.REG_VALUE])
 
     # Main loop - exit on signal only
     while run_status:
@@ -210,20 +202,20 @@ def main() -> None:
         # Day
         if next_read_day <= now and (pvdata := read_mtec_data(api=api, group="day")):
             write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}day/")
-            next_read_day = datetime.now() + timedelta(seconds=CONFIG[CFG_REFRESH_DAY])
+            next_read_day = datetime.now() + timedelta(seconds=CONFIG[const.CFG_REFRESH_DAY])
 
         # Total
         if next_read_total <= now and (pvdata := read_mtec_data(api=api, group="total")):
             write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}total/")
-            next_read_total = datetime.now() + timedelta(seconds=CONFIG[CFG_REFRESH_TOTAL])
+            next_read_total = datetime.now() + timedelta(seconds=CONFIG[const.CFG_REFRESH_TOTAL])
 
         # Config
         if next_read_config <= now and (pvdata := read_mtec_data(api=api, group="config")):
             write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}config/")
-            next_read_config = datetime.now() + timedelta(seconds=CONFIG[CFG_REFRESH_CONFIG])
+            next_read_config = datetime.now() + timedelta(seconds=CONFIG[const.CFG_REFRESH_CONFIG])
 
-        _LOGGER.debug("Sleep %ss", CONFIG[CFG_REFRESH_NOW])
-        time.sleep(CONFIG[CFG_REFRESH_NOW])
+        _LOGGER.debug("Sleep %ss", CONFIG[const.CFG_REFRESH_NOW])
+        time.sleep(CONFIG[const.CFG_REFRESH_NOW])
 
     # clean up
     if hass:

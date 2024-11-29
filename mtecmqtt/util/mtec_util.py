@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import logging
 
-from mtecmqtt import modbus_client
+from mtecmqtt import const, modbus_client
 from mtecmqtt.config import REGISTER_GROUPS, REGISTER_MAP
-from mtecmqtt.const import GROUP, MQTT, NAME, UNIT, VALUE, WRITABLE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +19,13 @@ def read_register(api: modbus_client.MTECModbusClient) -> None:
     _LOGGER.info("-------------------------------------")
     register = input("Register: ")
     if (data := api.read_modbus_data(registers=[register])) and (item := data.get(register)):
-        _LOGGER.info("Register %s (%s): %s %s", register, item[NAME], item[VALUE], item[UNIT])
+        _LOGGER.info(
+            "Register %s (%s): %s %s",
+            register,
+            item[const.REG_NAME],
+            item[const.REG_VALUE],
+            item[const.REG_UNIT],
+        )
 
 
 def read_register_group(api: modbus_client.MTECModbusClient) -> None:
@@ -39,7 +44,13 @@ def read_register_group(api: modbus_client.MTECModbusClient) -> None:
     _LOGGER.info("Reading...")
     if data := api.read_modbus_data(registers=registers):
         for register, item in data.items():
-            _LOGGER.info("- %s;: %s; %s; %s;", register, item[NAME], item[VALUE], item[UNIT])
+            _LOGGER.info(
+                "- %s;: %s; %s; %s;",
+                register,
+                item[const.REG_NAME],
+                item[const.REG_VALUE],
+                item[const.REG_UNIT],
+            )
 
 
 def write_register(api: modbus_client.MTECModbusClient) -> None:
@@ -50,13 +61,13 @@ def write_register(api: modbus_client.MTECModbusClient) -> None:
     _LOGGER.info("----- ------------------------------ ------ ----")
     register_map_sorted = dict(sorted(REGISTER_MAP.items()))
     for register, item in register_map_sorted.items():
-        if item[WRITABLE]:
+        if item[const.REG_WRITABLE]:
             data = api.read_modbus_data(registers=[register])
             value = ""
             if data:
-                value = data[register][VALUE]
-            unit = item[UNIT] if item[UNIT] else ""
-            _LOGGER.info("%s; %s; %s; %s", register, item[NAME], str(value), unit)
+                value = data[register][const.REG_VALUE]
+            unit = item[const.REG_UNIT] if item[const.REG_UNIT] else ""
+            _LOGGER.info("%s; %s; %s; %s", register, item[const.REG_NAME], str(value), unit)
 
     _LOGGER.info("")
     register = input("Register: ")
@@ -88,11 +99,13 @@ def list_register_config(api: modbus_client.MTECModbusClient) -> None:
             not register.isnumeric()
         ):  # non-numeric registers are deemed to be calculated pseudo-registers
             register = ""
-        mqtt = item[MQTT] if item[MQTT] else ""
-        unit = item[UNIT] if item[UNIT] else ""
-        group = item[GROUP] if item[GROUP] else ""
-        mode = "RW" if item[WRITABLE] else "R"
-        _LOGGER.info("%s; %s; %s; %s; %s; %s", register, mqtt, unit, mode, group, item[NAME])
+        mqtt = item[const.REG_MQTT] if item[const.REG_MQTT] else ""
+        unit = item[const.REG_UNIT] if item[const.REG_UNIT] else ""
+        group = item[const.REG_GROUP] if item[const.REG_GROUP] else ""
+        mode = "RW" if item[const.REG_WRITABLE] else "R"
+        _LOGGER.info(
+            "%s; %s; %s; %s; %s; %s", register, mqtt, unit, mode, group, item[const.REG_NAME]
+        )
 
 
 def list_register_config_by_groups(api: modbus_client.MTECModbusClient) -> None:
@@ -105,15 +118,21 @@ def list_register_config_by_groups(api: modbus_client.MTECModbusClient) -> None:
         _LOGGER.info("----- ------------------------------ ---- ---- -----------------------")
         register_map_sorted = dict(sorted(REGISTER_MAP.items()))
         for register, item in register_map_sorted.items():
-            if item[GROUP] == group:
+            if item[const.REG_GROUP] == group:
                 if (
                     not register.isnumeric()
                 ):  # non-nu1meric registers are deemed to be calculated pseudo-registers
                     register = ""
-                mqtt = item[MQTT] if item[MQTT] else ""
-                unit = item[UNIT] if item[UNIT] else ""
-                mode = "RW" if item[WRITABLE] else "R"
+                mqtt = item[const.REG_MQTT] if item[const.REG_MQTT] else ""
+                unit = item[const.REG_UNIT] if item[const.REG_UNIT] else ""
+                mode = "RW" if item[const.REG_WRITABLE] else "R"
                 _LOGGER.info(
-                    "%s; %s; %s; %s; %s; %s", group, register, mqtt, unit, mode, item[NAME]
+                    "%s; %s; %s; %s; %s; %s",
+                    group,
+                    register,
+                    mqtt,
+                    unit,
+                    mode,
+                    item[const.REG_NAME],
                 )
         _LOGGER.info("")

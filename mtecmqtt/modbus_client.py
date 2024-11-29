@@ -16,20 +16,8 @@ from pymodbus.framer import FramerType
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.pdu.register_read_message import ReadHoldingRegistersResponse
 
+from mtecmqtt import const
 from mtecmqtt.config import CONFIG, REGISTER_MAP
-from mtecmqtt.const import (
-    CFG_MODBUS_FRAMER,
-    CFG_MODBUS_RETRIES,
-    CFG_MODBUS_TIMEOUT,
-    GROUP,
-    LENGTH,
-    NAME,
-    SCALE,
-    TYPE,
-    UNIT,
-    VALUE,
-    WRITABLE,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,14 +40,14 @@ class MTECModbusClient:
         """Connect to modbus server."""
         self._slave = slave
 
-        framer = CONFIG.get(CFG_MODBUS_FRAMER, "rtu")
+        framer = CONFIG.get(const.CFG_MODBUS_FRAMER, "rtu")
         _LOGGER.debug("Connecting to server %s:%i (framer=%s)", ip_addr, port, framer)
         self._modbus_client = ModbusTcpClient(
             host=ip_addr,
             port=port,
             framer=FramerType(framer),
-            timeout=CONFIG[CFG_MODBUS_TIMEOUT],
-            retries=CONFIG[CFG_MODBUS_RETRIES],
+            timeout=CONFIG[const.CFG_MODBUS_TIMEOUT],
+            retries=CONFIG[const.CFG_MODBUS_RETRIES],
         )
 
         if self._modbus_client.connect():  # type: ignore[no-untyped-call]
@@ -78,7 +66,7 @@ class MTECModbusClient:
         """Get a list of all registers which belong to a given group."""
         registers: list[str] = []
         for register, item in REGISTER_MAP.items():
-            if item[GROUP] == group:
+            if item[const.REG_GROUP] == group:
                 registers.append(register)
 
         if len(registers) == 0:
@@ -109,14 +97,14 @@ class MTECModbusClient:
             _LOGGER.debug(
                 "Fetching data for cluster start %s, length %s, items %s",
                 reg_cluster["start"],
-                reg_cluster[LENGTH],
+                reg_cluster[const.REG_LENGTH],
                 len(reg_cluster["items"]),
             )
             if rawdata := self._read_registers(
-                register=reg_cluster["start"], length=reg_cluster[LENGTH]
+                register=reg_cluster["start"], length=reg_cluster[const.REG_LENGTH]
             ):
                 for item in reg_cluster["items"]:
-                    if item.get(TYPE):  # type==None means dummy
+                    if item.get(const.REG_TYPE):  # type==None means dummy
                         register = str(reg_cluster["start"] + offset)
                         if data_decoded := self._decode_rawdata(
                             rawdata=rawdata, offset=offset, item=item
@@ -124,7 +112,7 @@ class MTECModbusClient:
                             data.update({register: data_decoded})
                         else:
                             _LOGGER.error("Decoding error while decoding register %s", register)
-                    offset += item[LENGTH]
+                    offset += item[const.REG_LENGTH]
 
         _LOGGER.debug("Data retrieval completed")
         return data
@@ -135,7 +123,7 @@ class MTECModbusClient:
         if not (item := REGISTER_MAP.get(str(register), None)):
             _LOGGER.error("Can't write unknown register: %s", register)
             return False
-        if item.get(WRITABLE, False) is False:
+        if item.get(const.REG_WRITABLE, False) is False:
             _LOGGER.error("Can't write register which is marked read-only: %s", register)
             return False
 
@@ -148,8 +136,8 @@ class MTECModbusClient:
             return False
 
         # adjust scale
-        if item[SCALE] > 1:
-            value *= item[SCALE]
+        if item[const.REG_SCALE] > 1:
+            value *= item[const.REG_SCALE]
 
         try:
             result = self._modbus_client.write_register(
@@ -174,17 +162,19 @@ class MTECModbusClient:
 
     def _create_register_clusters(self, registers: list[str]) -> list[dict[str, Any]]:
         """Create clusters."""
-        cluster: dict[str, Any] = {"start": 0, LENGTH: 0, "items": []}
+        cluster: dict[str, Any] = {"start": 0, const.REG_LENGTH: 0, "items": []}
         cluster_list: list[dict[str, Any]] = []
 
         for register in sorted(registers):
             if register.isnumeric():  # ignore non-numeric pseudo registers
                 if item := REGISTER_MAP.get(register):
-                    if int(register) > cluster["start"] + cluster[LENGTH]:  # there is a gap
+                    if (
+                        int(register) > cluster["start"] + cluster[const.REG_LENGTH]
+                    ):  # there is a gap
                         if cluster["start"] > 0:  # except for first cluster
                             cluster_list.append(cluster)
-                        cluster = {"start": int(register), LENGTH: 0, "items": []}
-                    cluster[LENGTH] += item[LENGTH]
+                        cluster = {"start": int(register), const.REG_LENGTH: 0, "items": []}
+                    cluster[const.REG_LENGTH] += item[const.REG_LENGTH]
                     cluster["items"].append(item)
                 else:
                     _LOGGER.warning("Unknown register: %s - skipped.", register)
@@ -236,8 +226,8 @@ class MTECModbusClient:
             decoder = BinaryPayloadDecoder.fromRegisters(  # type: ignore[no-untyped-call]
                 registers=start, byteorder=Endian.BIG, wordorder=Endian.BIG
             )
-            item_type = str(item[TYPE])
-            item_length = int(item[LENGTH])
+            item_type = str(item[const.REG_TYPE])
+            item_length = int(item[const.REG_LENGTH])
             if item_type == "U16":
                 val = decoder.decode_16bit_uint()
             elif item_type == "I16":
@@ -266,10 +256,14 @@ class MTECModbusClient:
                 _LOGGER.error("Unknown type %s to decode", item_type)
                 return {}
 
-            item_scale = int(item[SCALE])
+            item_scale = int(item[const.REG_SCALE])
             if val and item_scale > 1:
                 val /= item_scale
-            return {NAME: item[NAME], VALUE: val, UNIT: item[UNIT]}
+            return {
+                const.REG_NAME: item[const.REG_NAME],
+                const.REG_VALUE: val,
+                const.REG_UNIT: item[const.REG_UNIT],
+            }
         except Exception as ex:
             _LOGGER.error("Exception while decoding data: %s", ex)
             return {}

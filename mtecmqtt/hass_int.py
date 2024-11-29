@@ -10,8 +10,7 @@ import json
 import logging
 from typing import Any
 
-from mtecmqtt import config, mqtt
-from mtecmqtt.const import GROUP, MQTT, NAME, UNIT
+from mtecmqtt import config, const, mqtt
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,11 +35,11 @@ class HassIntegration:
         """Initialize."""
         self._serial_no = serial_no
         self._device_info = {
-            "identifiers": [self._serial_no],
-            "name": "MTEC Energybutler",
-            "manufacturer": "MTEC",
-            "model": "Energybutler",
-            "via_device": "MTECmqtt",
+            const.HA_IDENTIFIERS: [self._serial_no],
+            const.HA_NAME: "MTEC Energybutler",
+            const.HA_MANUFACTURER: "MTEC",
+            const.HA_MODEL: "Energybutler",
+            const.HA_VIA_DEVICE: "MTECmqtt",
         }
         self._devices_array.clear()
         self._build_devices_array()
@@ -64,13 +63,13 @@ class HassIntegration:
         # Buttons
         for item in self.buttons:
             data_item = {
-                "name": item[0],
-                "unique_id": item[1],
-                "payload_press": item[2],
-                "command_topic": f"MTEC/{self._serial_no}/automations/command",
-                "device": self._device_info,
+                const.HA_NAME: item[0],
+                const.HA_UNIQUE_ID: item[1],
+                const.HA_PAYLOAD_PRESS: item[2],
+                const.HA_COMMAND_TOPIC: f"MTEC/{self._serial_no}/automations/command",
+                const.HA_DEVICE: self._device_info,
             }
-            topic = f"{config.CONFIG['HASS_BASE_TOPIC']}/button/{item[1]}/config"
+            topic = f"{config.CONFIG[const.CFG_HASS_BASE_TOPIC]}/button/{item[1]}/config"
             self._devices_array.append((topic, json.dumps(data_item)))
 
     def _build_devices_array(self) -> None:
@@ -83,7 +82,7 @@ class HassIntegration:
                     do_hass_registration = True
                     break
 
-            if item[GROUP] and do_hass_registration:
+            if item[const.REG_GROUP] and do_hass_registration:
                 component_type = item.get("hass_component_type", "sensor")
                 if component_type == "sensor":
                     self._append_sensor(item)
@@ -92,35 +91,38 @@ class HassIntegration:
 
     def _append_sensor(self, item: dict[str, Any]) -> None:
         data_item = {
-            "name": item[NAME],
-            "unique_id": "MTEC_" + item[MQTT],
-            "unit_of_measurement": item[UNIT],
-            "state_topic": f"MTEC/{self._serial_no}/{item[GROUP]}/{item[MQTT]}",
-            "device": self._device_info,
+            const.HA_NAME: item[const.REG_NAME],
+            const.HA_UNIQUE_ID: "MTEC_" + item[const.REG_MQTT],
+            const.HA_UNIT_OF_MEASUREMENT: item[const.REG_UNIT],
+            const.HA_STATE_TOPIC: f"MTEC/{self._serial_no}/{item[const.REG_GROUP]}/{item[const.REG_MQTT]}",
+            const.HA_DEVICE: self._device_info,
         }
-        if item.get("hass_device_class"):
-            data_item["device_class"] = item["hass_device_class"]
-        if item.get("hass_value_template"):
-            data_item["value_template"] = item["hass_value_template"]
-        if item.get("hass_state_class"):
-            data_item["state_class"] = item["hass_state_class"]
+        if hass_device_class := item.get(const.REG_DEVICE_CLASS):
+            data_item[const.HA_DEVICE_CLASS] = hass_device_class
+        if hass_value_template := item.get(const.REG_VALUE_TEMPLATE):
+            data_item[const.HA_VALUE_TEMPLATE] = hass_value_template
+        if hass_state_class := item.get(const.REG_STATE_CLASS):
+            data_item[const.HA_STATE_CLASS] = hass_state_class
 
-        topic = f"{config.CONFIG['HASS_BASE_TOPIC']}/sensor/MTEC_{item[MQTT]}/config"
+        topic = (
+            f"{config.CONFIG[const.CFG_HASS_BASE_TOPIC]}/sensor/MTEC_{item[const.REG_MQTT]}/config"
+        )
         self._devices_array.append((topic, json.dumps(data_item)))
 
     def _append_binary_sensor(self, item: dict[str, Any]) -> None:
         data_item = {
-            "name": item[NAME],
-            "unique_id": f"MTEC_{item[MQTT]}",
-            "state_topic": f"MTEC/{ self._serial_no}/{item[GROUP]}/{item[MQTT]}",
-            "device": self._device_info,
+            const.HA_NAME: item[const.REG_NAME],
+            const.HA_UNIQUE_ID: f"MTEC_{item[const.REG_MQTT]}",
+            const.HA_STATE_TOPIC: f"MTEC/{ self._serial_no}/{item[const.REG_GROUP]}/{item[const.REG_MQTT]}",
+            const.HA_DEVICE: self._device_info,
         }
-        if item.get("hass_device_class"):
-            data_item["device_class"] = item["hass_device_class"]
-        if item.get("hass_payload_on"):
-            data_item["payload_on"] = item["hass_payload_on"]
-        if item.get("hass_payload_off"):
-            data_item["payload_off"] = item["hass_payload_off"]
 
-        topic = f"{config.CONFIG['HASS_BASE_TOPIC']}/binary_sensor/MTEC_{item[MQTT]}/config"
+        if hass_device_class := item.get(const.REG_DEVICE_CLASS):
+            data_item[const.HA_DEVICE_CLASS] = hass_device_class
+        if hass_payload_on := item.get(const.REG_PAYLOAD_ON):
+            data_item[const.HA_PAYLOAD_ON] = hass_payload_on
+        if hass_payload_off := item.get(const.REG_PAYLOAD_OFF):
+            data_item[const.HA_PAYLOAD_OFF] = hass_payload_off
+
+        topic = f"{config.CONFIG[const.CFG_HASS_BASE_TOPIC]}/binary_sensor/MTEC_{item[const.REG_MQTT]}/config"
         self._devices_array.append((topic, json.dumps(data_item)))

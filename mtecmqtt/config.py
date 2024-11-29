@@ -14,7 +14,7 @@ from typing import Any, Final, cast
 
 import yaml
 
-from mtecmqtt.const import GROUP, LENGTH, MQTT, NAME, SCALE, TYPE, UNIT, UTF8, WRITABLE
+from mtecmqtt import const
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def create_config_file() -> bool:
     try:
         BASE_DIR = os.path.dirname(__file__)  # Base installation directory
         templ_fname = os.path.join(BASE_DIR, CONFIG_TEMPLATE)
-        with open(file=templ_fname, encoding=UTF8) as file:
+        with open(file=templ_fname, encoding=const.UTF8) as file:
             data = file.read()
     except Exception as ex:
         _LOGGER.info("ERROR - Couldn't read '%s': %s", CONFIG_TEMPLATE, ex)
@@ -65,7 +65,7 @@ def create_config_file() -> bool:
 
     try:
         os.makedirs(os.path.dirname(cfg_fname), exist_ok=True)
-        with open(file=cfg_fname, mode="w", encoding=UTF8) as file:
+        with open(file=cfg_fname, mode="w", encoding=const.UTF8) as file:
             file.write(data)
     except Exception as ex:
         _LOGGER.error("ERROR - Couldn't write %s: %s", cfg_fname, ex)
@@ -91,7 +91,7 @@ def init_config() -> dict[str, Any]:
     config: dict[str, Any] = {}
     for fname_conf in conf_files:
         try:
-            with open(file=fname_conf, encoding=UTF8) as f_conf:
+            with open(file=fname_conf, encoding=const.UTF8) as f_conf:
                 config = cast(dict[str, Any], yaml.safe_load(f_conf))
                 _LOGGER.info("Using config YAML file: %s", fname_conf)
                 break
@@ -108,7 +108,7 @@ def init_register_map() -> tuple[dict[str, dict[str, Any]], list[str]]:
     BASE_DIR = os.path.dirname(__file__)  # Base installation directory
     try:
         fname_regs = os.path.join(BASE_DIR, "registers.yaml")
-        with open(fname_regs, encoding=UTF8) as f_regs:
+        with open(fname_regs, encoding=const.UTF8) as f_regs:
             r_map = cast(dict[str, dict[str, Any]], yaml.safe_load(f_regs))
     except OSError as err:
         _LOGGER.fatal("Couldn't open registers YAML file: %s", str(err))
@@ -119,17 +119,17 @@ def init_register_map() -> tuple[dict[str, dict[str, Any]], list[str]]:
 
     # Syntax checks
     reg_map: dict[str, dict[str, Any]] = {}
-    p_mandatory: list[str] = [NAME]
+    p_mandatory: list[str] = [const.REG_NAME]
 
     # param, default
     p_optional: dict[str, Any] = {
-        LENGTH: None,
-        TYPE: None,
-        UNIT: "",
-        SCALE: 1,
-        WRITABLE: False,
-        MQTT: None,
-        GROUP: None,
+        const.REG_LENGTH: None,
+        const.REG_TYPE: None,
+        const.REG_UNIT: "",
+        const.REG_SCALE: 1,
+        const.REG_WRITABLE: False,
+        const.REG_MQTT: None,
+        const.REG_GROUP: None,
     }
     reg_groups: list[str] = []
 
@@ -154,7 +154,7 @@ def init_register_map() -> tuple[dict[str, dict[str, Any]], list[str]]:
                     item[param] = default
             reg_map[key] = item  # Append to reg_map
 
-            if (group := item[GROUP]) and group not in reg_groups:
+            if (group := item[const.REG_GROUP]) and group not in reg_groups:
                 reg_groups.append(group)  # Append to group list
     return reg_map, reg_groups
 
