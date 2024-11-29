@@ -12,8 +12,9 @@ import signal
 import time
 from typing import Any
 
-from mtecmqtt import const, hass_int, modbus_client
+from mtecmqtt import hass_int, modbus_client
 from mtecmqtt.config import CONFIG, REGISTER_MAP
+from mtecmqtt.const import SECONDARY_REGISTER_GROUPS, Config, Register, RegisterGroup
 from mtecmqtt.mqtt import mqtt_publish, mqtt_start, mqtt_stop
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ def signal_handler(signal_number: int, frame: Any) -> None:
     run_status = False
 
 
-def read_mtec_data(api: modbus_client.MTECModbusClient, group: str) -> PVDATA_TYPE:
+def read_mtec_data(api: modbus_client.MTECModbusClient, group: RegisterGroup) -> PVDATA_TYPE:
     """Read data from MTEC modbus."""
     _LOGGER.info("Reading registers for group: %s", group)
     registers = api.get_register_list(group=group)
@@ -39,73 +40,72 @@ def read_mtec_data(api: modbus_client.MTECModbusClient, group: str) -> PVDATA_TY
     try:  # assign all data
         for register in registers:
             item = REGISTER_MAP[register]
-            if item[const.REG_MQTT]:
+            if item[Register.MQTT]:
                 if register.isnumeric():
-                    pvdata[item[const.REG_MQTT]] = data[register]
+                    pvdata[item[Register.MQTT]] = data[register]
                 else:  # non-numeric registers are deemed to be calculated pseudo-registers
                     if register == "consumption":
-                        pvdata[item[const.REG_MQTT]] = (
-                            data["11016"][const.REG_VALUE] - data["11000"][const.REG_VALUE]
+                        pvdata[item[Register.MQTT]] = (
+                            data["11016"][Register.VALUE] - data["11000"][Register.VALUE]
                         )  # power consumption
                     elif register == "consumption-day":
-                        pvdata[item[const.REG_MQTT]] = (
-                            data["31005"][const.REG_VALUE]
-                            + data["31001"][const.REG_VALUE]
-                            + data["31004"][const.REG_VALUE]
-                            - data["31000"][const.REG_VALUE]
-                            - data["31003"][const.REG_VALUE]
+                        pvdata[item[Register.MQTT]] = (
+                            data["31005"][Register.VALUE]
+                            + data["31001"][Register.VALUE]
+                            + data["31004"][Register.VALUE]
+                            - data["31000"][Register.VALUE]
+                            - data["31003"][Register.VALUE]
                         )  # power consumption
                     elif register == "autarky-day":
-                        pvdata[item[const.REG_MQTT]] = (
-                            100
-                            * (1 - (data["31001"][const.REG_VALUE] / pvdata["consumption_day"]))
+                        pvdata[item[Register.MQTT]] = (
+                            100 * (1 - (data["31001"][Register.VALUE] / pvdata["consumption_day"]))
                             if isinstance(pvdata["consumption_day"], float | int)
                             and float(pvdata["consumption_day"]) > 0
                             else 0
                         )
                     elif register == "ownconsumption-day":
-                        pvdata[item[const.REG_MQTT]] = (
+                        pvdata[item[Register.MQTT]] = (
                             100
-                            * (1 - data["31000"][const.REG_VALUE] / data["31005"][const.REG_VALUE])
-                            if data["31005"][const.REG_VALUE] > 0
+                            * (1 - data["31000"][Register.VALUE] / data["31005"][Register.VALUE])
+                            if data["31005"][Register.VALUE] > 0
                             else 0
                         )
                     elif register == "consumption-total":
-                        pvdata[item[const.REG_MQTT]] = (
-                            data["31112"][const.REG_VALUE]
-                            + data["31104"][const.REG_VALUE]
-                            + data["31110"][const.REG_VALUE]
-                            - data["31102"][const.REG_VALUE]
-                            - data["31108"][const.REG_VALUE]
+                        pvdata[item[Register.MQTT]] = (
+                            data["31112"][Register.VALUE]
+                            + data["31104"][Register.VALUE]
+                            + data["31110"][Register.VALUE]
+                            - data["31102"][Register.VALUE]
+                            - data["31108"][Register.VALUE]
                         )  # power consumption
                     elif register == "autarky-total":
-                        pvdata[item[const.REG_MQTT]] = (
+                        pvdata[item[Register.MQTT]] = (
                             100
-                            * (1 - (data["31104"][const.REG_VALUE] / pvdata["consumption_total"]))
+                            * (1 - (data["31104"][Register.VALUE] / pvdata["consumption_total"]))
                             if isinstance(pvdata["consumption_total"], float | int)
                             and float(pvdata["consumption_total"]) > 0
                             else 0
                         )
                     elif register == "ownconsumption-total":
-                        pvdata[item[const.REG_MQTT]] = (
+                        pvdata[item[Register.MQTT]] = (
                             100
-                            * (1 - data["31102"][const.REG_VALUE] / data["31112"][const.REG_VALUE])
-                            if data["31112"][const.REG_VALUE] > 0
+                            * (1 - data["31102"][Register.VALUE] / data["31112"][Register.VALUE])
+                            if data["31112"][Register.VALUE] > 0
                             else 0
                         )
                     elif register == "api-date":
-                        pvdata[item[const.REG_MQTT]] = now.strftime(
+                        pvdata[item[Register.MQTT]] = now.strftime(
                             "%Y-%m-%d %H:%M:%S"
                         )  # Local time of this server
                     else:
                         _LOGGER.warning("Unknown calculated pseudo-register: %s", register)
 
                     if (
-                        (value := pvdata[item[const.REG_MQTT]])
+                        (value := pvdata[item[Register.MQTT]])
                         and isinstance(value, float)
                         and float(value) < 0
                     ):  # Avoid to report negative values, which might occur in some edge cases
-                        pvdata[item[const.REG_MQTT]] = 0
+                        pvdata[item[Register.MQTT]] = 0
 
     except Exception as e:
         _LOGGER.warning("Retrieved Modbus data is incomplete: %s", str(e))
@@ -113,20 +113,20 @@ def read_mtec_data(api: modbus_client.MTECModbusClient, group: str) -> PVDATA_TY
     return pvdata
 
 
-def write_to_mqtt(pvdata: PVDATA_TYPE, base_topic: str) -> None:
+def write_to_mqtt(pvdata: PVDATA_TYPE, topic_base: str, group: RegisterGroup) -> None:
     """Write data to MQTT."""
     for param, data in pvdata.items():
-        topic = base_topic + param
+        topic = f"{topic_base}/{group}/{param}"
         if isinstance(data, dict):
-            value = data[const.REG_VALUE]
+            value = data[Register.VALUE]
             if isinstance(value, float):
-                payload = CONFIG[const.CFG_MQTT_FLOAT_FORMAT].format(value)
+                payload = CONFIG[Config.MQTT_FLOAT_FORMAT].format(value)
             elif isinstance(value, bool):
                 payload = f"{value:d}"
             else:
                 payload = value
         elif isinstance(data, float):
-            payload = CONFIG[const.CFG_MQTT_FLOAT_FORMAT].format(data)
+            payload = CONFIG[Config.MQTT_FLOAT_FORMAT].format(data)
         elif isinstance(data, bool):
             payload = f"{data:d}"
         else:
@@ -143,7 +143,7 @@ def main() -> None:
     # Initialization
     signal.signal(signalnum=signal.SIGTERM, handler=signal_handler)
     signal.signal(signalnum=signal.SIGINT, handler=signal_handler)
-    if CONFIG[const.CFG_DEBUG] is True:
+    if CONFIG[Config.DEBUG] is True:
         logging.getLogger().setLevel(level=logging.DEBUG)
     _LOGGER.info("Starting")
 
@@ -153,46 +153,40 @@ def main() -> None:
     now_ext_idx = 0
     topic_base = None
 
-    hass = hass_int.HassIntegration() if CONFIG[const.CFG_HASS_ENABLE] else None
+    hass = hass_int.HassIntegration() if CONFIG[Config.HASS_ENABLE] else None
 
     mqttclient = mqtt_start(hass=hass)
     api = modbus_client.MTECModbusClient()
     api.connect(
-        ip_addr=CONFIG[const.CFG_MODBUS_IP],
-        port=CONFIG[const.CFG_MODBUS_PORT],
-        slave=CONFIG[const.CFG_MODBUS_SLAVE],
+        ip_addr=CONFIG[Config.MODBUS_IP],
+        port=CONFIG[Config.MODBUS_PORT],
+        slave=CONFIG[Config.MODBUS_SLAVE],
     )
 
     # Initialize
     pv_config = None
     while not pv_config:
-        if not (pv_config := read_mtec_data(api=api, group="config")):
+        if not (pv_config := read_mtec_data(api=api, group=RegisterGroup.CONFIG)):
             _LOGGER.warning("Can't retrieve initial config - retry in 10 s")
             time.sleep(10)
 
-    topic_base = f"{CONFIG['MQTT_TOPIC']}/{pv_config['serial_no'][const.REG_VALUE]}/"  # type: ignore[unreachable]
+    topic_base = f"{CONFIG[Config.MQTT_TOPIC]}/{pv_config[Register.SERIAL_NO][Register.VALUE]}"  # type: ignore[unreachable]
     if hass and not hass.is_initialized:
-        hass.initialize(serial_no=pv_config["serial_no"][const.REG_VALUE])
+        hass.initialize(serial_no=pv_config[Register.SERIAL_NO][Register.VALUE])
 
     # Main loop - exit on signal only
     while run_status:
         now = datetime.now()
 
         # Now base
-        if pvdata := read_mtec_data(api=api, group="now-base"):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}now-base/")
+        if pvdata := read_mtec_data(api=api, group=RegisterGroup.BASE):
+            write_to_mqtt(pvdata=pvdata, topic_base=topic_base, group=RegisterGroup.BASE)
 
         # Now extended - read groups in a round robin - one per loop
-        if now_ext_idx == 0 and (pvdata := read_mtec_data(api=api, group="now-grid")):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}now-grid/")
-        elif now_ext_idx == 1 and (pvdata := read_mtec_data(api=api, group="now-inverter")):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}now-inverter/")
-        elif now_ext_idx == 2 and (pvdata := read_mtec_data(api=api, group="now-backup")):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}now-backup/")
-        elif now_ext_idx == 3 and (pvdata := read_mtec_data(api=api, group="now-battery")):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}now-battery/")
-        elif now_ext_idx == 4 and (pvdata := read_mtec_data(api=api, group="now-pv")):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}now-pv/")
+        if (group := SECONDARY_REGISTER_GROUPS.get(now_ext_idx)) and (
+            pvdata := read_mtec_data(api=api, group=group)
+        ):
+            write_to_mqtt(pvdata=pvdata, topic_base=topic_base, group=group)
 
         if now_ext_idx >= 4:
             now_ext_idx = 0
@@ -200,26 +194,30 @@ def main() -> None:
             now_ext_idx += 1
 
         # Day
-        if next_read_day <= now and (pvdata := read_mtec_data(api=api, group="day")):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}day/")
-            next_read_day = datetime.now() + timedelta(seconds=CONFIG[const.CFG_REFRESH_DAY])
+        if next_read_day <= now and (pvdata := read_mtec_data(api=api, group=RegisterGroup.DAY)):
+            write_to_mqtt(pvdata=pvdata, topic_base=topic_base, group=RegisterGroup.DAY)
+            next_read_day = datetime.now() + timedelta(seconds=CONFIG[Config.REFRESH_DAY])
 
         # Total
-        if next_read_total <= now and (pvdata := read_mtec_data(api=api, group="total")):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}total/")
-            next_read_total = datetime.now() + timedelta(seconds=CONFIG[const.CFG_REFRESH_TOTAL])
+        if next_read_total <= now and (
+            pvdata := read_mtec_data(api=api, group=RegisterGroup.TOTAL)
+        ):
+            write_to_mqtt(pvdata=pvdata, topic_base=topic_base, group=RegisterGroup.TOTAL)
+            next_read_total = datetime.now() + timedelta(seconds=CONFIG[Config.REFRESH_TOTAL])
 
         # Config
-        if next_read_config <= now and (pvdata := read_mtec_data(api=api, group="config")):
-            write_to_mqtt(pvdata=pvdata, base_topic=f"{topic_base}config/")
-            next_read_config = datetime.now() + timedelta(seconds=CONFIG[const.CFG_REFRESH_CONFIG])
+        if next_read_config <= now and (
+            pvdata := read_mtec_data(api=api, group=RegisterGroup.CONFIG)
+        ):
+            write_to_mqtt(pvdata=pvdata, topic_base=topic_base, group=RegisterGroup.CONFIG)
+            next_read_config = datetime.now() + timedelta(seconds=CONFIG[Config.REFRESH_CONFIG])
 
-        _LOGGER.debug("Sleep %ss", CONFIG[const.CFG_REFRESH_NOW])
-        time.sleep(CONFIG[const.CFG_REFRESH_NOW])
+        _LOGGER.debug("Sleep %ss", CONFIG[Config.REFRESH_NOW])
+        time.sleep(CONFIG[Config.REFRESH_NOW])
 
     # clean up
-    if hass:
-        hass.send_unregister_info()
+    #if hass:
+    #    hass.send_unregister_info()
     api.disconnect()
     mqtt_stop(client=mqttclient)
     _LOGGER.info("Exiting")

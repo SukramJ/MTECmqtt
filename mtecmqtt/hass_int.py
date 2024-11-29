@@ -10,7 +10,8 @@ import json
 import logging
 from typing import Any
 
-from mtecmqtt import config, const, mqtt
+from mtecmqtt import config, mqtt
+from mtecmqtt.const import HA, Config, Register
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,11 +36,11 @@ class HassIntegration:
         """Initialize."""
         self._serial_no = serial_no
         self._device_info = {
-            const.HA_IDENTIFIERS: [self._serial_no],
-            const.HA_NAME: "MTEC Energybutler",
-            const.HA_MANUFACTURER: "MTEC",
-            const.HA_MODEL: "Energybutler",
-            const.HA_VIA_DEVICE: "MTECmqtt",
+            HA.IDENTIFIERS: [self._serial_no],
+            HA.NAME: "MTEC Energybutler",
+            HA.MANUFACTURER: "MTEC",
+            HA.MODEL: "Energybutler",
+            HA.VIA_DEVICE: "MTECmqtt",
         }
         self._devices_array.clear()
         self._build_devices_array()
@@ -51,7 +52,7 @@ class HassIntegration:
         """Send discovery info."""
         _LOGGER.info("Sending home assistant discovery info")
         for device in self._devices_array:
-            mqtt.mqtt_publish(topic=device[0], payload=device[1])
+            mqtt.mqtt_publish(topic=device[0], payload=device[1], retain=True)
 
     def send_unregister_info(self) -> None:
         """Send unregister info."""
@@ -63,13 +64,13 @@ class HassIntegration:
         # Buttons
         for item in self.buttons:
             data_item = {
-                const.HA_NAME: item[0],
-                const.HA_UNIQUE_ID: item[1],
-                const.HA_PAYLOAD_PRESS: item[2],
-                const.HA_COMMAND_TOPIC: f"MTEC/{self._serial_no}/automations/command",
-                const.HA_DEVICE: self._device_info,
+                HA.NAME: item[0],
+                HA.UNIQUE_ID: item[1],
+                HA.PAYLOAD_PRESS: item[2],
+                HA.COMMAND_TOPIC: f"MTEC/{self._serial_no}/automations/command",
+                HA.DEVICE: self._device_info,
             }
-            topic = f"{config.CONFIG[const.CFG_HASS_BASE_TOPIC]}/button/{item[1]}/config"
+            topic = f"{config.CONFIG[Config.HASS_BASE_TOPIC]}/button/{item[1]}/config"
             self._devices_array.append((topic, json.dumps(data_item)))
 
     def _build_devices_array(self) -> None:
@@ -82,7 +83,7 @@ class HassIntegration:
                     do_hass_registration = True
                     break
 
-            if item[const.REG_GROUP] and do_hass_registration:
+            if item[Register.GROUP] and do_hass_registration:
                 component_type = item.get("hass_component_type", "sensor")
                 if component_type == "sensor":
                     self._append_sensor(item)
@@ -91,38 +92,36 @@ class HassIntegration:
 
     def _append_sensor(self, item: dict[str, Any]) -> None:
         data_item = {
-            const.HA_NAME: item[const.REG_NAME],
-            const.HA_UNIQUE_ID: "MTEC_" + item[const.REG_MQTT],
-            const.HA_UNIT_OF_MEASUREMENT: item[const.REG_UNIT],
-            const.HA_STATE_TOPIC: f"MTEC/{self._serial_no}/{item[const.REG_GROUP]}/{item[const.REG_MQTT]}",
-            const.HA_DEVICE: self._device_info,
+            HA.NAME: item[Register.NAME],
+            HA.UNIQUE_ID: "MTEC_" + item[Register.MQTT],
+            HA.UNIT_OF_MEASUREMENT: item[Register.UNIT],
+            HA.STATE_TOPIC: f"MTEC/{self._serial_no}/{item[Register.GROUP]}/{item[Register.MQTT]}",
+            HA.DEVICE: self._device_info,
         }
-        if hass_device_class := item.get(const.REG_DEVICE_CLASS):
-            data_item[const.HA_DEVICE_CLASS] = hass_device_class
-        if hass_value_template := item.get(const.REG_VALUE_TEMPLATE):
-            data_item[const.HA_VALUE_TEMPLATE] = hass_value_template
-        if hass_state_class := item.get(const.REG_STATE_CLASS):
-            data_item[const.HA_STATE_CLASS] = hass_state_class
+        if hass_device_class := item.get(Register.DEVICE_CLASS):
+            data_item[HA.DEVICE_CLASS] = hass_device_class
+        if hass_value_template := item.get(Register.VALUE_TEMPLATE):
+            data_item[HA.VALUE_TEMPLATE] = hass_value_template
+        if hass_state_class := item.get(Register.STATE_CLASS):
+            data_item[HA.STATE_CLASS] = hass_state_class
 
-        topic = (
-            f"{config.CONFIG[const.CFG_HASS_BASE_TOPIC]}/sensor/MTEC_{item[const.REG_MQTT]}/config"
-        )
+        topic = f"{config.CONFIG[Config.HASS_BASE_TOPIC]}/sensor/MTEC_{item[Register.MQTT]}/config"
         self._devices_array.append((topic, json.dumps(data_item)))
 
     def _append_binary_sensor(self, item: dict[str, Any]) -> None:
         data_item = {
-            const.HA_NAME: item[const.REG_NAME],
-            const.HA_UNIQUE_ID: f"MTEC_{item[const.REG_MQTT]}",
-            const.HA_STATE_TOPIC: f"MTEC/{ self._serial_no}/{item[const.REG_GROUP]}/{item[const.REG_MQTT]}",
-            const.HA_DEVICE: self._device_info,
+            HA.NAME: item[Register.NAME],
+            HA.UNIQUE_ID: f"MTEC_{item[Register.MQTT]}",
+            HA.STATE_TOPIC: f"MTEC/{ self._serial_no}/{item[Register.GROUP]}/{item[Register.MQTT]}",
+            HA.DEVICE: self._device_info,
         }
 
-        if hass_device_class := item.get(const.REG_DEVICE_CLASS):
-            data_item[const.HA_DEVICE_CLASS] = hass_device_class
-        if hass_payload_on := item.get(const.REG_PAYLOAD_ON):
-            data_item[const.HA_PAYLOAD_ON] = hass_payload_on
-        if hass_payload_off := item.get(const.REG_PAYLOAD_OFF):
-            data_item[const.HA_PAYLOAD_OFF] = hass_payload_off
+        if hass_device_class := item.get(Register.DEVICE_CLASS):
+            data_item[HA.DEVICE_CLASS] = hass_device_class
+        if hass_payload_on := item.get(Register.PAYLOAD_ON):
+            data_item[HA.PAYLOAD_ON] = hass_payload_on
+        if hass_payload_off := item.get(Register.PAYLOAD_OFF):
+            data_item[HA.PAYLOAD_OFF] = hass_payload_off
 
-        topic = f"{config.CONFIG[const.CFG_HASS_BASE_TOPIC]}/binary_sensor/MTEC_{item[const.REG_MQTT]}/config"
+        topic = f"{config.CONFIG[Config.HASS_BASE_TOPIC]}/binary_sensor/MTEC_{item[Register.MQTT]}/config"
         self._devices_array.append((topic, json.dumps(data_item)))

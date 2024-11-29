@@ -10,8 +10,8 @@ import argparse
 import logging
 import sys
 
-from mtecmqtt import const
 from mtecmqtt.config import CONFIG, REGISTER_GROUPS
+from mtecmqtt.const import UTF8, Config, Register
 from mtecmqtt.modbus_client import MTECModbusClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ def main() -> None:
             else:
                 f_mode = "w"
             original_stdout = sys.stdout
-            with open(file=args.file, mode=f_mode, encoding=const.UTF8) as file:
+            with open(file=args.file, mode=f_mode, encoding=UTF8) as file:
                 sys.stdout = file
         except Exception:
             _LOGGER.info("ERROR - Unable to open output file '%s'", args.file)
@@ -83,9 +83,9 @@ def main() -> None:
 
             # Do the export
     api.connect(
-        ip_addr=CONFIG[const.CFG_MODBUS_IP],
-        port=CONFIG[const.CFG_MODBUS_PORT],
-        slave=CONFIG[const.CFG_MODBUS_SLAVE],
+        ip_addr=CONFIG[Config.MODBUS_IP],
+        port=CONFIG[Config.MODBUS_PORT],
+        slave=CONFIG[Config.MODBUS_SLAVE],
     )
     data = api.read_modbus_data(registers=registers)
     api.disconnect()
@@ -93,9 +93,9 @@ def main() -> None:
     if data:
         for register, item in data.items():
             if args.csv:
-                line = f"{register};{item[const.REG_NAME]};{item[const.REG_VALUE]};{item[const.REG_UNIT]}"
+                line = f"{register};{item[Register.NAME]};{item[Register.VALUE]};{item[Register.UNIT]}"
             else:
-                line = f"- {register}: {item[const.REG_NAME]} {item[const.REG_VALUE]} {item[const.REG_UNIT]}"
+                line = f"- {register}: {item[Register.NAME]} {item[Register.VALUE]} {item[Register.UNIT]}"
             _LOGGER.info(line)
 
     # cleanup

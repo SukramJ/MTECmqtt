@@ -2,60 +2,98 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Final
 
+CLIENT_ID: Final = "client_id"
 UTF8: Final = "utf-8"
 
-REG_DEVICE_CLASS: Final = "hass_device_class"
-REG_GROUP: Final = "group"
-REG_LENGTH: Final = "length"
-REG_MQTT: Final = "mqtt"
-REG_NAME: Final = "name"
-REG_PAYLOAD_OFF: Final = "hass_payload_off"
-REG_PAYLOAD_ON: Final = "hass_payload_on"
-REG_SCALE: Final = "scale"
-REG_STATE_CLASS: Final = "hass_state_class"
-REG_TYPE: Final = "type"
-REG_UNIT: Final = "unit"
-REG_VALUE: Final = "value"
-REG_VALUE_TEMPLATE: Final = "hass_value_template"
-REG_WRITABLE: Final = "writable"
 
-HA_COMMAND_TOPIC: Final = "command_topic"
-HA_DEVICE: Final = "device"
-HA_DEVICE_CLASS: Final = "device_class"
-HA_IDENTIFIERS: Final = "identifiers"
-HA_MANUFACTURER: Final = "manufacturer"
-HA_MODEL: Final = "model"
-HA_NAME: Final = "name"
-HA_PAYLOAD_OFF: Final = "payload_off"
-HA_PAYLOAD_ON: Final = "payload_on"
-HA_PAYLOAD_PRESS: Final = "payload_press"
-HA_STATE_CLASS: Final = "state_class"
-HA_STATE_TOPIC: Final = "state_topic"
-HA_UNIQUE_ID: Final = "unique_id"
-HA_UNIT_OF_MEASUREMENT: Final = "unit_of_measurement"
-HA_VALUE_TEMPLATE: Final = "value_template"
-HA_VIA_DEVICE: Final = "via_device"
+class Config(StrEnum):
+    """enum with config qualifiers."""
 
-CFG_MODBUS_IP: Final = "MODBUS_IP"
-CFG_MODBUS_PORT: Final = "MODBUS_PORT"
-CFG_MODBUS_SLAVE: Final = "MODBUS_SLAVE"
-CFG_MODBUS_TIMEOUT: Final = "MODBUS_TIMEOUT"
-CFG_MODBUS_RETRIES: Final = "MODBUS_RETRIES"
-CFG_MODBUS_FRAMER: Final = "MODBUS_FRAMER"
-CFG_MQTT_DISABLE: Final = "MQTT_DISABLE"
-CFG_MQTT_SERVER: Final = "MQTT_SERVER"
-CFG_MQTT_PORT: Final = "MQTT_PORT"
-CFG_MQTT_LOGIN: Final = "MQTT_LOGIN"
-CFG_MQTT_PASSWORD: Final = "MQTT_PASSWORD"
-CFG_MQTT_TOPIC: Final = "MQTT_TOPIC"
-CFG_MQTT_FLOAT_FORMAT: Final = "MQTT_FLOAT_FORMAT"
-CFG_REFRESH_NOW: Final = "REFRESH_NOW"
-CFG_REFRESH_DAY: Final = "REFRESH_DAY"
-CFG_REFRESH_TOTAL: Final = "REFRESH_TOTAL"
-CFG_REFRESH_CONFIG: Final = "REFRESH_CONFIG"
-CFG_HASS_ENABLE: Final = "HASS_ENABLE"
-CFG_HASS_BASE_TOPIC: Final = "HASS_BASE_TOPIC"
-CFG_HASS_BIRTH_GRACETIME: Final = "HASS_BIRTH_GRACETIME"
-CFG_DEBUG: Final = "DEBUG"
+    DEBUG = "DEBUG"
+    HASS_BASE_TOPIC = "HASS_BASE_TOPIC"
+    HASS_BIRTH_GRACETIME = "HASS_BIRTH_GRACETIME"
+    HASS_ENABLE = "HASS_ENABLE"
+    MODBUS_FRAMER = "MODBUS_FRAMER"
+    MODBUS_IP = "MODBUS_IP"
+    MODBUS_PORT = "MODBUS_PORT"
+    MODBUS_RETRIES = "MODBUS_RETRIES"
+    MODBUS_SLAVE = "MODBUS_SLAVE"
+    MODBUS_TIMEOUT = "MODBUS_TIMEOUT"
+    MQTT_DISABLE = "MQTT_DISABLE"
+    MQTT_FLOAT_FORMAT = "MQTT_FLOAT_FORMAT"
+    MQTT_LOGIN = "MQTT_LOGIN"
+    MQTT_PASSWORD = "MQTT_PASSWORD"
+    MQTT_PORT = "MQTT_PORT"
+    MQTT_SERVER = "MQTT_SERVER"
+    MQTT_TOPIC = "MQTT_TOPIC"
+    REFRESH_CONFIG = "REFRESH_CONFIG"
+    REFRESH_DAY = "REFRESH_DAY"
+    REFRESH_NOW = "REFRESH_NOW"
+    REFRESH_TOTAL = "REFRESH_TOTAL"
+
+
+class HA(StrEnum):
+    """Enum with HA qualifiers."""
+
+    COMMAND_TOPIC = "command_topic"
+    DEVICE = "device"
+    DEVICE_CLASS = "device_class"
+    IDENTIFIERS = "identifiers"
+    MANUFACTURER = "manufacturer"
+    MODEL = "model"
+    NAME = "name"
+    PAYLOAD_OFF = "payload_off"
+    PAYLOAD_ON = "payload_on"
+    PAYLOAD_PRESS = "payload_press"
+    STATE_CLASS = "state_class"
+    STATE_TOPIC = "state_topic"
+    UNIQUE_ID = "unique_id"
+    UNIT_OF_MEASUREMENT = "unit_of_measurement"
+    VALUE_TEMPLATE = "value_template"
+    VIA_DEVICE = "via_device"
+
+
+class Register(StrEnum):
+    """Enum with Register qualifiers."""
+
+    DEVICE_CLASS = "hass_device_class"
+    GROUP = "group"
+    LENGTH = "length"
+    MQTT = "mqtt"
+    NAME = "name"
+    PAYLOAD_OFF = "hass_payload_off"
+    PAYLOAD_ON = "hass_payload_on"
+    SCALE = "scale"
+    SERIAL_NO = "serial_no"
+    STATE_CLASS = "hass_state_class"
+    TYPE = "type"
+    UNIT = "unit"
+    VALUE = "value"
+    VALUE_TEMPLATE = "hass_value_template"
+    WRITABLE = "writable"
+
+
+class RegisterGroup(StrEnum):
+    """Enum with Register group qualifiers."""
+
+    BASE = "now-base"
+    GRID = "now-grid"
+    INVERTER = "now-inverter"
+    BACKUP = "now-backup"
+    BATTERY = "now-battery"
+    PV = "now-pv"
+    CONFIG = "config"
+    DAY = "day"
+    TOTAL = "total"
+
+
+SECONDARY_REGISTER_GROUPS: Final = {
+    0: RegisterGroup.GRID,
+    1: RegisterGroup.INVERTER,
+    2: RegisterGroup.BACKUP,
+    3: RegisterGroup.BATTERY,
+    4: RegisterGroup.PV,
+}
