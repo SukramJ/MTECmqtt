@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 
 from mtecmqtt import modbus_client
-from mtecmqtt.config import REGISTER_GROUPS, REGISTER_MAP
+from mtecmqtt.config import init_config, init_register_map
 from mtecmqtt.const import Register, RegisterGroup
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def read_register_group(api: modbus_client.MTECModbusClient) -> None:
     """Read register group."""
     _LOGGER.info("-------------------------------------")
     line = "Groups: "
-    for g in sorted(REGISTER_GROUPS):
+    for g in sorted(api.register_groups):
         line += g + ", "
     _LOGGER.info("%s %s", line, "all")
 
@@ -60,7 +60,7 @@ def write_register(api: modbus_client.MTECModbusClient) -> None:
     _LOGGER.info("Current settings of writable registers:")
     _LOGGER.info("Reg   Name                           Value  Unit")
     _LOGGER.info("----- ------------------------------ ------ ----")
-    register_map_sorted = dict(sorted(REGISTER_MAP.items()))
+    register_map_sorted = dict(sorted(api.register_map.items()))
     for register, item in register_map_sorted.items():
         if item[Register.WRITABLE]:
             data = api.read_modbus_data(registers=[register])
@@ -94,7 +94,7 @@ def list_register_config(api: modbus_client.MTECModbusClient) -> None:
     _LOGGER.info(
         "----- ------------------------------ ---- ---- --------------- -----------------------"
     )
-    register_map_sorted = dict(sorted(REGISTER_MAP.items()))
+    register_map_sorted = dict(sorted(api.register_map.items()))
     for register, item in register_map_sorted.items():
         if (
             not register.isnumeric()
@@ -111,13 +111,13 @@ def list_register_config(api: modbus_client.MTECModbusClient) -> None:
 
 def list_register_config_by_groups(api: modbus_client.MTECModbusClient) -> None:
     """List register config by groups."""
-    for group in REGISTER_GROUPS:
+    for group in api.register_groups:
         _LOGGER.info("-------------------------------------")
         _LOGGER.info("Group %s:", group)
         _LOGGER.info("")
         _LOGGER.info("Reg   MQTT Parameter                 Unit Mode Name                   ")
         _LOGGER.info("----- ------------------------------ ---- ---- -----------------------")
-        register_map_sorted = dict(sorted(REGISTER_MAP.items()))
+        register_map_sorted = dict(sorted(api.register_map.items()))
         for register, item in register_map_sorted.items():
             if item[Register.GROUP] == group:
                 if (
@@ -137,3 +137,44 @@ def list_register_config_by_groups(api: modbus_client.MTECModbusClient) -> None:
                     item[Register.NAME],
                 )
         _LOGGER.info("")
+
+
+def main() -> None:
+    """Start the mtec utilities."""
+    register_map, register_groups = init_register_map()
+    config = init_config()
+    api = modbus_client.MTECModbusClient(
+        config=config, register_map=register_map, register_groups=register_groups
+    )
+    api.connect()
+
+    while True:
+        print("=====================================")  # noqa: T201
+        print("Menu:")  # noqa: T201
+        print("  1: List all known registers")  # noqa: T201
+        print("  2: List register configuration by groups")  # noqa: T201
+        print("  3: Read register group from Inverter")  # noqa: T201
+        print("  4: Read single register from Inverter")  # noqa: T201
+        print("  5: Write register to Inverter")  # noqa: T201
+        print("  x: Exit")  # noqa: T201
+        opt = input("Please select: ")
+        if opt == "1":
+            list_register_config(api=api)
+        elif opt == "2":
+            list_register_config_by_groups(api=api)
+        if opt == "3":
+            read_register_group(api=api)
+        elif opt == "4":
+            read_register(api=api)
+        elif opt == "5":
+            write_register(api=api)
+        elif opt in ("x", "X"):
+            break
+
+    api.disconnect()
+    print("Bye!")  # noqa: T201
+
+
+# -------------------------------
+if __name__ == "__main__":
+    main()

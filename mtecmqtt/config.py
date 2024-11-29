@@ -10,18 +10,13 @@ import logging
 import os
 import socket
 import sys
-from typing import Any, Final, cast
+from typing import Any, cast
 
 import yaml
 
-from mtecmqtt.const import UTF8, Register
+from mtecmqtt.const import CONFIG_FILE, CONFIG_PATH, CONFIG_ROOT, CONFIG_TEMPLATE, UTF8, Register
 
 _LOGGER = logging.getLogger(__name__)
-
-CONFIG_FILE: Final = "config.yaml"
-CONFIG_PATH: Final = "mtecmqtt"
-CONFIG_ROOT: Final = ".config"
-CONFIG_TEMPLATE: Final = "config-template.yaml"
 
 
 # Create new config file
@@ -78,8 +73,7 @@ def create_config_file() -> bool:
 def init_config() -> dict[str, Any]:
     """Read configuration from YAML file."""
     # Look in different locations for config.yaml file
-    conf_files: list[str] = []
-    conf_files.append(os.path.join(os.getcwd(), CONFIG_FILE))  # CWD/config.yaml
+    conf_files: list[str] = [os.path.join(os.getcwd(), CONFIG_FILE)]
     # Usually something like ~/.config/mtecmqtt/config.yaml resp. 'C:\\Users\\xxxx\\AppData\\Roaming'
     if cfg_path := os.environ.get("XDG_CONFIG_HOME") or os.environ.get("APPDATA"):
         conf_files.append(os.path.join(cfg_path, CONFIG_PATH, CONFIG_FILE))
@@ -160,13 +154,11 @@ def init_register_map() -> tuple[dict[str, dict[str, Any]], list[str]]:
 
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(filename)s: %(message)s")
-if not (CONFIG := init_config()):
+if not init_config():
     if create_config_file():  # Create a new config
-        if not (CONFIG := init_config()):
+        if not init_config():
             _LOGGER.fatal("Couldn't open config YAML file")
             sys.exit(1)
     else:
         _LOGGER.fatal("Couldn't create config YAML file")
         sys.exit(1)
-
-REGISTER_MAP, REGISTER_GROUPS = init_register_map()

@@ -38,7 +38,8 @@ dependencies    = [
 "Forum"       = "https://github.com/sukramj/mtecmqtt/discussions"
 
 [project.scripts]
-mtec_mqtt = "mtecmqtt.mtec_mqtt:main"
+mtec_mqtt = "mtecmqtt.mtec_coordinator:main"
+mtec_util = "mtecmqtt.util.mtec_util:main"
 
 [tool.setuptools]
 script-files = ["install_systemd_service.sh"]

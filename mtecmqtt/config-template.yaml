@@ -7,7 +7,6 @@ MODBUS_RETRIES: 3 # Retries
 MODBUS_FRAMER: rtu # Modbus Framer (usually no change required; options: 'ascii', 'binary', 'rtu', 'socket', 'tls')
 
 # MQTT settings
-MQTT_DISABLE: false
 MQTT_SERVER: localhost # MQTT server
 MQTT_PORT: 1883 # MQTT server port
 MQTT_LOGIN: " " # MQTT Login

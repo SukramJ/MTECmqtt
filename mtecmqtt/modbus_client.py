@@ -7,7 +7,7 @@ Modbus API for M-TEC Energybutler.
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any, Final, cast
 
 from pymodbus.client import ModbusTcpClient
 from pymodbus.constants import Endian
@@ -16,8 +16,7 @@ from pymodbus.framer import FramerType
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.pdu.register_read_message import ReadHoldingRegistersResponse
 
-from mtecmqtt.config import CONFIG, REGISTER_MAP
-from mtecmqtt.const import Config, Register, RegisterGroup
+from mtecmqtt.const import DEFAULT_FRAMER, Config, Register, RegisterGroup
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,35 +24,62 @@ _LOGGER = logging.getLogger(__name__)
 class MTECModbusClient:
     """Modbus API for MTEC Energy Butler."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        config: dict[str, Any],
+        register_map: dict[str, dict[str, Any]],
+        register_groups: list[str],
+    ) -> None:
         """Init the modbus client."""
+        self._register_map: Final = register_map
+        self._register_groups: Final = register_groups
         self._modbus_client: ModbusTcpClient = None  # type: ignore[assignment]
-        self._slave = 0
-        self._cluster_cache: dict[str, list[dict[str, Any]]] = {}
-        _LOGGER.debug("API initialized")
+        self._cluster_cache: Final[dict[str, list[dict[str, Any]]]] = {}
+
+        self._modbus_framer: Final[str] = config.get(Config.MODBUS_FRAMER, DEFAULT_FRAMER)
+        self._modbus_host: Final[str] = config[Config.MODBUS_IP]
+        self._modbus_port: Final[int] = config[Config.MODBUS_PORT]
+        self._modbus_retries: Final[int] = config[Config.MODBUS_RETRIES]
+        self._modbus_slave: Final[int] = config[Config.MODBUS_SLAVE]
+        self._modbus_timeout: Final[int] = config[Config.MODBUS_TIMEOUT]
+        _LOGGER.debug("Modbus client initialized")
 
     def __del__(self) -> None:
         """Cleanup the modbus client."""
         self.disconnect()
 
-    def connect(self, ip_addr: str, port: int, slave: int) -> bool:
-        """Connect to modbus server."""
-        self._slave = slave
+    @property
+    def register_groups(self) -> list[str]:
+        """Return the register groups."""
+        return self._register_groups
 
-        framer = CONFIG.get(Config.MODBUS_FRAMER, "rtu")
-        _LOGGER.debug("Connecting to server %s:%i (framer=%s)", ip_addr, port, framer)
+    @property
+    def register_map(self) -> dict[str, dict[str, Any]]:
+        """Return the register map."""
+        return self._register_map
+
+    def connect(self) -> bool:
+        """Connect to modbus server."""
+        _LOGGER.debug(
+            "Connecting to server %s:%i (framer=%s)",
+            self._modbus_host,
+            self._modbus_port,
+            self._modbus_framer,
+        )
         self._modbus_client = ModbusTcpClient(
-            host=ip_addr,
-            port=port,
-            framer=FramerType(framer),
-            timeout=CONFIG[Config.MODBUS_TIMEOUT],
-            retries=CONFIG[Config.MODBUS_RETRIES],
+            host=self._modbus_host,
+            port=self._modbus_port,
+            framer=FramerType(self._modbus_framer),
+            timeout=self._modbus_timeout,
+            retries=self._modbus_retries,
         )
 
         if self._modbus_client.connect():  # type: ignore[no-untyped-call]
-            _LOGGER.debug("Successfully connected to server %s:%i", ip_addr, port)
+            _LOGGER.debug(
+                "Successfully connected to server %s:%i", self._modbus_host, self._modbus_port
+            )
             return True
-        _LOGGER.error("Couldn't connect to server %s:%i", ip_addr, port)
+        _LOGGER.error("Couldn't connect to server %s:%i", self._modbus_host, self._modbus_port)
         return False
 
     def disconnect(self) -> None:
@@ -65,7 +91,7 @@ class MTECModbusClient:
     def get_register_list(self, group: RegisterGroup) -> list[str]:
         """Get a list of all registers which belong to a given group."""
         registers: list[str] = []
-        for register, item in REGISTER_MAP.items():
+        for register, item in self._register_map.items():
             if item[Register.GROUP] == group:
                 registers.append(register)
 
@@ -85,7 +111,7 @@ class MTECModbusClient:
 
         if registers is None:  # Create a list of all (numeric) registers
             registers = []
-            for register in REGISTER_MAP:
+            for register in self._register_map:
                 if (
                     register.isnumeric()
                 ):  # non-numeric registers are deemed to be calculated pseudo-registers
@@ -106,7 +132,7 @@ class MTECModbusClient:
                 for item in reg_cluster["items"]:
                     if item.get(Register.TYPE):  # type==None means dummy
                         register = str(reg_cluster["start"] + offset)
-                        if data_decoded := self._decode_rawdata(
+                        if data_decoded := _decode_rawdata(
                             rawdata=rawdata, offset=offset, item=item
                         ):
                             data.update({register: data_decoded})
@@ -120,7 +146,7 @@ class MTECModbusClient:
     def write_register(self, register: str, value: Any) -> bool:
         """Write a value to a register."""
         # Lookup register
-        if not (item := REGISTER_MAP.get(str(register), None)):
+        if not (item := self._register_map.get(str(register), None)):
             _LOGGER.error("Can't write unknown register: %s", register)
             return False
         if item.get(Register.WRITABLE, False) is False:
@@ -141,7 +167,7 @@ class MTECModbusClient:
 
         try:
             result = self._modbus_client.write_register(
-                address=int(register), value=int(value), slave=self._slave
+                address=int(register), value=int(value), slave=self._modbus_slave
             )
         except Exception as ex:
             _LOGGER.error("Exception while writing register %s to pymodbus: %s", register, ex)
@@ -167,7 +193,7 @@ class MTECModbusClient:
 
         for register in sorted(registers):
             if register.isnumeric():  # ignore non-numeric pseudo registers
-                if item := REGISTER_MAP.get(register):
+                if item := self._register_map.get(register):
                     if (
                         int(register) > cluster["start"] + cluster[Register.LENGTH]
                     ):  # there is a gap
@@ -190,7 +216,7 @@ class MTECModbusClient:
             result: ReadHoldingRegistersResponse = cast(
                 ReadHoldingRegistersResponse,
                 self._modbus_client.read_holding_registers(
-                    address=int(register), count=length, slave=self._slave
+                    address=int(register), count=length, slave=self._modbus_slave
                 ),
             )
         except ModbusException as ex:
@@ -216,54 +242,55 @@ class MTECModbusClient:
             return None
         return result
 
-    def _decode_rawdata(
-        self, rawdata: ReadHoldingRegistersResponse, offset: int, item: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Decode the result from rawdata, starting at offset."""
-        try:
-            val = None
-            start = rawdata.registers[offset:]
-            decoder = BinaryPayloadDecoder.fromRegisters(  # type: ignore[no-untyped-call]
-                registers=start, byteorder=Endian.BIG, wordorder=Endian.BIG
-            )
-            item_type = str(item[Register.TYPE])
-            item_length = int(item[Register.LENGTH])
-            if item_type == "U16":
-                val = decoder.decode_16bit_uint()
-            elif item_type == "I16":
-                val = decoder.decode_16bit_int()
-            elif item_type == "U32":
-                val = decoder.decode_32bit_uint()
-            elif item_type == "I32":
-                val = decoder.decode_32bit_int()
-            elif item_type == "BYTE":
-                if item_length == 1:
-                    val = f"{decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}"
-                elif item_length == 2:
-                    val = f"{decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}  {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}"
-                elif item_length == 4:
-                    val = f"{decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}  {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}"
-            elif item_type == "BIT":
-                if item_length == 1:
-                    val = f"{decoder.decode_8bit_uint():08b}"
-                if item_length == 2:
-                    val = f"{decoder.decode_8bit_uint():08b} {decoder.decode_8bit_uint():08b}"
-            elif item_type == "DAT":
-                val = f"{decoder.decode_8bit_uint():02d}-{decoder.decode_8bit_uint():02d}-{decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}:{decoder.decode_8bit_uint():02d}:{decoder.decode_8bit_uint():02d}"
-            elif item_type == "STR":
-                val = decoder.decode_string(item_length * 2).decode()
-            else:
-                _LOGGER.error("Unknown type %s to decode", item_type)
-                return {}
 
-            item_scale = int(item[Register.SCALE])
-            if val and item_scale > 1:
-                val /= item_scale
-            return {
-                Register.NAME: item[Register.NAME],
-                Register.VALUE: val,
-                Register.UNIT: item[Register.UNIT],
-            }
-        except Exception as ex:
-            _LOGGER.error("Exception while decoding data: %s", ex)
+def _decode_rawdata(
+    rawdata: ReadHoldingRegistersResponse, offset: int, item: dict[str, Any]
+) -> dict[str, Any]:
+    """Decode the result from rawdata, starting at offset."""
+    try:
+        val = None
+        start = rawdata.registers[offset:]
+        decoder = BinaryPayloadDecoder.fromRegisters(  # type: ignore[no-untyped-call]
+            registers=start, byteorder=Endian.BIG
+        )
+        item_type = str(item[Register.TYPE])
+        item_length = int(item[Register.LENGTH])
+        if item_type == "U16":
+            val = decoder.decode_16bit_uint()
+        elif item_type == "I16":
+            val = decoder.decode_16bit_int()
+        elif item_type == "U32":
+            val = decoder.decode_32bit_uint()
+        elif item_type == "I32":
+            val = decoder.decode_32bit_int()
+        elif item_type == "BYTE":
+            if item_length == 1:
+                val = f"{decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}"
+            elif item_length == 2:
+                val = f"{decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}  {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}"
+            elif item_length == 4:
+                val = f"{decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}  {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}"
+        elif item_type == "BIT":
+            if item_length == 1:
+                val = f"{decoder.decode_8bit_uint():08b}"
+            if item_length == 2:
+                val = f"{decoder.decode_8bit_uint():08b} {decoder.decode_8bit_uint():08b}"
+        elif item_type == "DAT":
+            val = f"{decoder.decode_8bit_uint():02d}-{decoder.decode_8bit_uint():02d}-{decoder.decode_8bit_uint():02d} {decoder.decode_8bit_uint():02d}:{decoder.decode_8bit_uint():02d}:{decoder.decode_8bit_uint():02d}"
+        elif item_type == "STR":
+            val = decoder.decode_string(item_length * 2).decode()
+        else:
+            _LOGGER.error("Unknown type %s to decode", item_type)
             return {}
+
+        item_scale = int(item[Register.SCALE])
+        if val and item_scale > 1:
+            val /= item_scale
+        return {
+            Register.NAME: item[Register.NAME],
+            Register.VALUE: val,
+            Register.UNIT: item[Register.UNIT],
+        }
+    except Exception as ex:
+        _LOGGER.error("Exception while decoding data: %s", ex)
+        return {}

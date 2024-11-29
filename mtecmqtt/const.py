@@ -6,6 +6,11 @@ from enum import StrEnum
 from typing import Final
 
 CLIENT_ID: Final = "client_id"
+CONFIG_FILE: Final = "config.yaml"
+CONFIG_PATH: Final = "mtecmqtt"
+CONFIG_ROOT: Final = ".config"
+CONFIG_TEMPLATE: Final = "config-template.yaml"
+DEFAULT_FRAMER: Final = "rtu"
 UTF8: Final = "utf-8"
 
 
@@ -22,7 +27,6 @@ class Config(StrEnum):
     MODBUS_RETRIES = "MODBUS_RETRIES"
     MODBUS_SLAVE = "MODBUS_SLAVE"
     MODBUS_TIMEOUT = "MODBUS_TIMEOUT"
-    MQTT_DISABLE = "MQTT_DISABLE"
     MQTT_FLOAT_FORMAT = "MQTT_FLOAT_FORMAT"
     MQTT_LOGIN = "MQTT_LOGIN"
     MQTT_PASSWORD = "MQTT_PASSWORD"
