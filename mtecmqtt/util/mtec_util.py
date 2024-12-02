@@ -40,7 +40,7 @@ def read_register_group(api: modbus_client.MTECModbusClient) -> None:
 
     if (group := input("Register group (or RETURN for all): ")) in ("", "all"):
         registers = None
-    elif not api.get_register_list(group=RegisterGroup(group)):
+    elif not (registers := api.get_register_list(group=RegisterGroup(group))):
         return
 
     _LOGGER.info("Reading...")
