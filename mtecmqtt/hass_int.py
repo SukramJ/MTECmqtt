@@ -13,7 +13,7 @@ from typing import Any, Final
 from mtecmqtt import mqtt_client
 from mtecmqtt.const import HA, Register
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 class HassIntegration:

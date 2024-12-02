@@ -7,12 +7,13 @@ A test utility for MTEC Modbus API.
 from __future__ import annotations
 
 import logging
+from typing import Final
 
 from mtecmqtt import modbus_client
 from mtecmqtt.config import init_config, init_register_map
 from mtecmqtt.const import Register, RegisterGroup
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 def read_register(api: modbus_client.MTECModbusClient) -> None:

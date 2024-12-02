@@ -16,7 +16,7 @@ from mtecmqtt import hass_int, modbus_client, mqtt_client
 from mtecmqtt.config import init_config, init_register_map
 from mtecmqtt.const import SECONDARY_REGISTER_GROUPS, Config, Register, RegisterGroup
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 PVDATA_TYPE = dict[str, dict[str, Any] | int | float | str | bool]
 run_status = False

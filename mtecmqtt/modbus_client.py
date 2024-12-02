@@ -18,7 +18,7 @@ from pymodbus.pdu.register_read_message import ReadHoldingRegistersResponse
 
 from mtecmqtt.const import DEFAULT_FRAMER, Config, Register, RegisterGroup
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 class MTECModbusClient:

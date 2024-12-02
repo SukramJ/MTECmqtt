@@ -10,13 +10,13 @@ import logging
 import os
 import socket
 import sys
-from typing import Any, cast
+from typing import Any, Final, cast
 
 import yaml
 
 from mtecmqtt.const import CONFIG_FILE, CONFIG_PATH, CONFIG_ROOT, CONFIG_TEMPLATE, UTF8, Register
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 # Create new config file

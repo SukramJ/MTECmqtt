@@ -10,13 +10,13 @@ import logging
 import time
 from typing import Any, Final
 
-from paho.mqtt import client as paho, publish
+from paho.mqtt import client as paho
 
 from mtecmqtt import hass_int
 from mtecmqtt.const import CLIENT_ID, UTF8, Config
 from mtecmqtt.exceptions import MtecException
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 class MqttClient:
@@ -45,15 +45,15 @@ class MqttClient:
 
     def on_mqtt_message(
         self,
-        _: paho.Client,
-        userdata: hass_int.HassIntegration,
+        client: paho.Client,
+        userdata: Any,
         message: paho.MQTTMessage,
     ) -> None:
         """Handle received message."""
         try:
             msg = message.payload.decode(UTF8)
             # topic = message.topic.split("/")
-            if msg == "online" and userdata:
+            if msg == "online" and self._hass is not None:
                 gracetime = self._hass_birth_gracetime
                 _LOGGER.info(
                     "Received HASS online message. Sending discovery info in %i sec", gracetime
@@ -61,15 +61,14 @@ class MqttClient:
                 time.sleep(
                     gracetime
                 )  # dirty workaround: hass requires some grace period for being ready to receive discovery info
-                userdata.send_discovery_info()
+                self._hass.send_discovery_info()
         except Exception as e:
             _LOGGER.warning("Error while handling MQTT message: %s", str(e))
 
     def _start(self) -> paho.Client:
         """Start the MQTT client."""
         try:
-            client = paho.Client()
-            client.user_data_set(userdata=self._hass)  # register home automation instance
+            client = paho.Client(client_id=CLIENT_ID)
             client.username_pw_set(username=self._username, password=self._password)
             client.connect(host=self._hostname, port=self._port)
 
@@ -98,14 +97,6 @@ class MqttClient:
         """Publish mqtt message."""
         _LOGGER.debug("- %s: %s", topic, str(payload))
         try:
-            publish.single(
-                topic=topic,
-                client_id=CLIENT_ID,
-                payload=payload,
-                hostname=self._hostname,
-                port=self._port,
-                auth=self._auth,  # type: ignore[arg-type]
-                retain=retain,
-            )
+            self._client.publish(topic=topic, payload=payload, retain=retain)
         except Exception as e:
             _LOGGER.error("Couldn't send MQTT command: %s", str(e))
