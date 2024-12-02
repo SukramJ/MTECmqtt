@@ -91,7 +91,9 @@ class MtecCoordinator:
         )
         if self._hass and not self._hass.is_initialized:
             self._hass.initialize(
-                mqtt=self._mqtt_client, serial_no=pv_config[Register.SERIAL_NO][Register.VALUE]
+                mqtt=self._mqtt_client,
+                serial_no=pv_config[Register.SERIAL_NO][Register.VALUE],
+                firmware_version=pv_config[Register.FIRMWARE_VERSION][Register.VALUE],
             )
 
         # Main loop - exit on signal only

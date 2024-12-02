@@ -40,15 +40,19 @@ class HassIntegration:
         """Return True if hass integration initialized."""
         return self._is_initialized
 
-    def initialize(self, mqtt: mqtt_client.MqttClient, serial_no: str) -> None:
+    def initialize(
+        self, mqtt: mqtt_client.MqttClient, serial_no: str, firmware_version: str
+    ) -> None:
         """Initialize."""
         self._mqtt = mqtt
         self._serial_no = serial_no
         self._device_info = {
-            HA.IDENTIFIERS: [self._serial_no],
+            HA.IDENTIFIERS: [serial_no],
             HA.NAME: "MTEC Energybutler",
             HA.MANUFACTURER: "MTEC",
             HA.MODEL: "Energybutler",
+            HA.SERIAL_NUMBER: serial_no,
+            HA.SW_VERSION: firmware_version,
             HA.VIA_DEVICE: "MTECmqtt",
         }
         self._devices_array.clear()
