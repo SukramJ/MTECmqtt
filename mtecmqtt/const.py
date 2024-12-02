@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Final
 
-CLIENT_ID: Final = "client_id"
+CLIENT_ID: Final = "M-TEC-MQTT"
 CONFIG_FILE: Final = "config.yaml"
 CONFIG_PATH: Final = "mtecmqtt"
 CONFIG_ROOT: Final = ".config"
