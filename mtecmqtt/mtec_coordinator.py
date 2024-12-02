@@ -89,11 +89,13 @@ class MtecCoordinator:
         topic_base = (  # type: ignore[unreachable]
             f"{self._mqtt_topic}/{pv_config[Register.SERIAL_NO][Register.VALUE]}"
         )
+        fw0, fw1 = str(pv_config[Register.FIRMWARE_VERSION][Register.VALUE]).split("  ")
+        firmware_version = f"V{fw0.replace(' ', '.')}-V{fw1.replace(' ', '.')}"
         if self._hass and not self._hass.is_initialized:
             self._hass.initialize(
                 mqtt=self._mqtt_client,
                 serial_no=pv_config[Register.SERIAL_NO][Register.VALUE],
-                firmware_version=pv_config[Register.FIRMWARE_VERSION][Register.VALUE],
+                firmware_version=firmware_version,
             )
 
         # Main loop - exit on signal only
